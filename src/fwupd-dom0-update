@@ -1,0 +1,153 @@
+#!/bin/bash
+
+escape_args() {
+    local eargs=""
+
+    for arg in "$@"; do
+    printf -v eargs '%s%q ' "$eargs" "$arg"
+    done
+
+    echo "${eargs%?}"
+}
+
+find_regex_in_args() {
+    local regex="${1}"
+    shift 1
+
+    for arg in "${@}"; do
+        if echo "${arg}" | grep -q -e "${regex}"; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+UPDATEVM=`qubes-prefs --force-root updatevm`
+FWUPD_DOM0_CACHE_FILES=/root/.cache/fwupd
+FWUPD_UPDATEVM_CACHE_FILES=/home/user/.cache/fwupd
+
+#if [ -z "$UPDATEVM" ]; then
+#    echo "UpdateVM not set, exiting"
+#    exit 1
+#fi
+
+if [ "$1" = "--help" ]; then
+    echo "This tool is used to download packages for dom0. Without package list"
+    echo "it checks for updates for installed packages"
+    echo ""
+    echo "Usage: $0 [--clean] [--check-only] [--gui] [<pkg list>]"
+    echo "    --clean      clean cache before doing anything"
+    echo "    --metadata   inits metadata download"
+    echo "    --update     inits firmware update files download"
+    echo "    --url=       firmware update url"
+    echo "    --sha=       firmware upadte sha1 checksum"
+    exit
+fi
+
+CLEAN=
+METADATA=
+UPDATE=
+URL=
+SHASUM=
+FW_NAME=
+
+# Filter out some dnf options and collect packages list
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --clean)
+            CLEAN=1
+            ;;
+        --metadata)
+            METADATA=1
+            ;;
+        --update)
+            UPDATE=1
+            ;;
+        --url=*)
+            URL=${1#--url=}
+            FW_NAME=${1#--url=https://fwupd.org/downloads/}
+            ;;
+        --sha=*)
+            SHASUM=${1#--sha=}
+            ;;
+        *)
+            echo "Command unknown"
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+ID=$(id -ur)
+if [ $ID != 0 ]; then
+    echo "This script should be run as root (when used in console mode), use sudo." >&2
+    exit 1
+fi
+
+if [ -n "$CLEAN" ]; then
+    echo "Cleaning directories."
+    rm -rf $FWUPD_DOM0_CACHE_FILES/metadata
+    rm -rf $FWUPD_DOM0_CACHE_FILES/updates
+fi
+
+if [ "$UPDATE" == "1" ] && [[ -z "$URL" || -z "$SHASUM" ]]; then
+    echo "Invalid update url or checksum." >&2
+    exit 1
+fi
+
+if [[ -z "$UPDATE" && -z "$METADATA" ]]; then
+    echo "No option chosen. Exiting..." >&2
+    exit 1
+fi
+
+# Set ownership
+chown -R root:qubes $FWUPD_DOM0_CACHE_FILES
+
+echo "Using $UPDATEVM as UpdateVM to download fwupd updates for Dom0; this may take some time..." >&2
+
+# qvm-run by default auto-starts the VM if not running
+qvm-run --nogui -q -u root $UPDATEVM "mkdir -m 775 -p $FWUPD_UPDATEVM_CACHE_FILES/metadata" || exit 1
+qvm-run --nogui -q -u root $UPDATEVM "mkdir -m 775 -p $FWUPD_UPDATEVM_CACHE_FILES/updates" || exit 1
+qvm-run --nogui -q -u root $UPDATEVM "chown -R user:user $FWUPD_UPDATEVM_CACHE_FILES" || exit 1
+
+# Setup fwupd-download-updates comandline
+FW_UPDATE_SCRIPT="/usr/lib/qubes/fwupd-download-updates.sh"
+if [ "$METADATA" == 1 ]; then
+    rm -rf $FWUPD_DOM0_CACHE_FILES/metadata
+    FW_UPDATE_SCRIPT_ARGS="--metadata"
+    FW_RECIVE_ARGS="metadata"
+elif [ "$UPDATE" == 1 ]; then
+    FW_DIR=$FWUPD_DOM0_CACHE_FILES/updates/$FW_NAME
+    if [ -d "${FW_DIR::-4}" ]; then
+        echo "Firmware already downloaded. Using cached files." >&2
+        exit 0
+    else
+        FW_UPDATE_SCRIPT_ARGS="--url=$URL --sha=$SHASUM"
+        FW_RECIVE_ARGS="update $SHASUM $FW_NAME"
+    fi
+fi
+
+# Use 'script' to fake a terminal, so that we are shown sync and download
+# progress indicators. However, do it only if we are running in terminal
+# ourselves.
+CMD="script --quiet --return --command '$FW_UPDATE_SCRIPT \
+    $FW_UPDATE_SCRIPT_ARGS' /dev/null"
+qvm-run --nogui --pass-io $UPDATEVM "$CMD"
+
+RETCODE=$?
+if [ "$RETCODE" -ne 0 ]; then
+    exit $RETCODE
+fi
+
+# Wait for download completed
+/usr/libexec/qubes/./fwupd-receive-updates $UPDATEVM $FW_RECIVE_ARGS
+
+if [ "$?" -ne 0 ]; then
+    echo "*** ERROR while receiving fwupd updates"
+    rm -rf $FWUPD_DOM0_CACHE_FILES/metadata
+    rm -rf $FWUPD_DOM0_CACHE_FILES/updates
+    exit 1
+fi
+
+exit 0
