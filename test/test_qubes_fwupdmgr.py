@@ -2,6 +2,9 @@
 import unittest
 import os.path as path
 import src.qubes_fwupdmgr as qfwupd
+import sys
+import io
+import platform
 from unittest.mock import patch
 
 FWUPD_DOM0_DIR = "/root/.cache/fwupd/"
@@ -70,9 +73,14 @@ UPDATE_INFO = """{
 
 
 class TestQubesFwupdmgr(unittest.TestCase):
+    def setUp(self):
+        self.q = qfwupd.QubesFwupdmgr()
+#        capturedOutput = io.StringIO()
+#        sys.stdout = capturedOutput
+
+    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
     def test_download_metadata(self):
-        q = qfwupd.QubesFwupdmgr()
-        q.download_metadata()
+        self.q.download_metadata()
         self.assertTrue(
                         path.exists(FWUPD_DOM0_METADATA_FILE),
                         msg="Metadata update file does not exist",
@@ -82,50 +90,49 @@ class TestQubesFwupdmgr(unittest.TestCase):
                         msg="Metadata signature does not exist",
                        )
 
+    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
     def test_refresh_metadata(self):
-        q = qfwupd.QubesFwupdmgr()
-        q.refresh_metadata()
+        self.q.refresh_metadata()
         self.assertEqual(
-                         q.output,
+                         self.q.output,
                          'Successfully refreshed metadata manually',
                          msg="Metadata refresh failed."
                         )
 
+    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
     def test_get_updates(self):
-        q = qfwupd.QubesFwupdmgr()
-        q.get_updates()
+        self.q.get_updates()
         self.assertTrue(
-                          "Devices" in q.updates_info,
+                          "Devices" in self.q.updates_info,
                           msg="Getting available updates failed"
                          )
 
     def test_parse_updates_info(self):
-        q = qfwupd.QubesFwupdmgr()
-        q.parse_updates_info(UPDATE_INFO)
+        self.q.parse_updates_info(UPDATE_INFO)
         self.assertEqual(
-            q.updates_list[0][0],
+            self.q.updates_list[0][0],
             "ColorHug2",
             msg="Wrong device name"
         )
         self.assertEqual(
-            q.updates_list[0][1],
+            self.q.updates_list[0][1],
             "2.0.6",
             msg="Wrong update version"
         )
         self.assertEqual(
-            q.updates_list[0][2][1],
+            self.q.updates_list[0][2][0][1],
             "https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab",
             msg="Wrong update URL"
         )
         self.assertEqual(
-            q.updates_list[0][2][2],
+            self.q.updates_list[0][2][0][2],
             "490be5c0b13ca4a3f169bf8bc682ba127b8f7b96",
             msg="Wrong checksum"
         )
 
+    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
     def test_download_firmware_updates(self):
-        q = qfwupd.QubesFwupdmgr()
-        q.download_firmware_updates(
+        self.q.download_firmware_updates(
             "https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab",
             "490be5c0b13ca4a3f169bf8bc682ba127b8f7b96"
         )
@@ -133,8 +140,41 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7"
         self.assertTrue(path.exists(update_path))
 
-#   def test_user_input(self):
-#       q = qfwupd.QubesFwupdmgr()
+    def test_user_input_empty_list(self):
+        empty_update_list = []
+        self.assertEqual(self.q.user_input(empty_update_list), 99)
+
+    def test_user_input_n(self):
+        user_input = ['sth', 'n']
+        with patch('builtins.input', side_effect=user_input):
+            self.q.parse_updates_info(UPDATE_INFO)
+            choice = self.q.user_input(self.q.updates_list)
+        self.assertEqual(choice, 99)
+        user_input = ['sth', 'N']
+        with patch('builtins.input', side_effect=user_input):
+            self.q.parse_updates_info(UPDATE_INFO)
+            choice = self.q.user_input(self.q.updates_list)
+        self.assertEqual(choice, 99)
+
+    def test_user_input_choice(self):
+        user_input = ['6', '1']
+        with patch('builtins.input', side_effect=user_input):
+            self.q.parse_updates_info(UPDATE_INFO)
+            choice = self.q.user_input(self.q.updates_list)
+        self.assertEqual(choice, 0)
+
+    def test_parse_parameters(self):
+        self.q.parse_updates_info(UPDATE_INFO)
+        self.q.parse_parameters(self.q.updates_list, 0)
+        self.assertListEqual(
+            self.q.url,
+            ["https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab"]
+            )
+        self.assertListEqual(
+            self.q.sha,
+            ["490be5c0b13ca4a3f169bf8bc682ba127b8f7b96"]
+            )
+
 
 if __name__ == '__main__':
     unittest.main()

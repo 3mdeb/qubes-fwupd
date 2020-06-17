@@ -116,6 +116,7 @@ class FwupdReceiveUpdates:
                         "%s" % output_path,
                         "%s" % archive_path
                     ]
+        shutil.copy(archive_path, FWUPD_DOM0_UPDATES_DIR)
         p = subprocess.Popen(cmd_extract, stdout=subprocess.PIPE)
         p.communicate()[0].decode('ascii')
         if p.returncode != 0:
