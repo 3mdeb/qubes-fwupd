@@ -28,8 +28,8 @@ import sys
 FWUPD_QUBES_DIR = "/usr/share/fwupd-qubes"
 FWUPD_DOM0_UPDATE = os.path.join(FWUPD_QUBES_DIR, "src/fwupd-dom0-update")
 FWUPD_DOM0_DIR = "/root/.cache/fwupd"
-FWUPD_DOM0_METADATA_DIR = os.path.join(FWUPD_DOM0_DIR, "/metadata")
-FWUPD_DOM0_UPDATES_DIR = os.path.join(FWUPD_DOM0_DIR, "/updates")
+FWUPD_DOM0_METADATA_DIR = os.path.join(FWUPD_DOM0_DIR, "metadata")
+FWUPD_DOM0_UPDATES_DIR = os.path.join(FWUPD_DOM0_DIR, "updates")
 FWUPD_DOM0_METADATA_SIGNATURE = os.path.join(
     FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz.asc"
