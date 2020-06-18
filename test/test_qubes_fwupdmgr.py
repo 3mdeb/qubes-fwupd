@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import json
 import unittest
 import os.path as path
 import src.qubes_fwupdmgr as qfwupd
@@ -69,46 +70,48 @@ UPDATE_INFO = """{
                        ]
                      }
                    ]
-                 }"""
+                 }
+"""
 
 
 class TestQubesFwupdmgr(unittest.TestCase):
     def setUp(self):
         self.q = qfwupd.QubesFwupdmgr()
-#        capturedOutput = io.StringIO()
-#        sys.stdout = capturedOutput
+        self.maxDiff = 1500
+        self.captured_output = io.StringIO()
+        sys.stdout = self.captured_output
 
     @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
     def test_download_metadata(self):
-        self.q.download_metadata()
+        self.q._download_metadata()
         self.assertTrue(
-                        path.exists(FWUPD_DOM0_METADATA_FILE),
-                        msg="Metadata update file does not exist",
-                       )
+            path.exists(FWUPD_DOM0_METADATA_FILE),
+            msg="Metadata update file does not exist",
+        )
         self.assertTrue(
-                        path.exists(FWUPD_DOM0_METADATA_SIGNATURE),
-                        msg="Metadata signature does not exist",
-                       )
+            path.exists(FWUPD_DOM0_METADATA_SIGNATURE),
+            msg="Metadata signature does not exist",
+        )
 
     @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
     def test_refresh_metadata(self):
         self.q.refresh_metadata()
         self.assertEqual(
-                         self.q.output,
-                         'Successfully refreshed metadata manually',
-                         msg="Metadata refresh failed."
-                        )
+            self.q.output,
+            'Successfully refreshed metadata manually',
+            msg="Metadata refresh failed."
+        )
 
     @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
     def test_get_updates(self):
-        self.q.get_updates()
+        self.q._get_updates()
         self.assertTrue(
-                          "Devices" in self.q.updates_info,
-                          msg="Getting available updates failed"
-                         )
+            "Devices" in self.q.updates_info,
+            msg="Getting available updates failed"
+        )
 
     def test_parse_updates_info(self):
-        self.q.parse_updates_info(UPDATE_INFO)
+        self.q._parse_updates_info(UPDATE_INFO)
         self.assertEqual(
             self.q.updates_list[0][0],
             "ColorHug2",
@@ -132,7 +135,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
     def test_download_firmware_updates(self):
-        self.q.download_firmware_updates(
+        self.q._download_firmware_updates(
             "https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab",
             "490be5c0b13ca4a3f169bf8bc682ba127b8f7b96"
         )
@@ -142,38 +145,87 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     def test_user_input_empty_list(self):
         empty_update_list = []
-        self.assertEqual(self.q.user_input(empty_update_list), 99)
+        self.assertEqual(self.q._user_input(empty_update_list), 99)
 
     def test_user_input_n(self):
         user_input = ['sth', 'n']
         with patch('builtins.input', side_effect=user_input):
-            self.q.parse_updates_info(UPDATE_INFO)
-            choice = self.q.user_input(self.q.updates_list)
+            self.q._parse_updates_info(UPDATE_INFO)
+            choice = self.q._user_input(self.q.updates_list)
         self.assertEqual(choice, 99)
         user_input = ['sth', 'N']
         with patch('builtins.input', side_effect=user_input):
-            self.q.parse_updates_info(UPDATE_INFO)
-            choice = self.q.user_input(self.q.updates_list)
+            self.q._parse_updates_info(UPDATE_INFO)
+            choice = self.q._user_input(self.q.updates_list)
         self.assertEqual(choice, 99)
 
     def test_user_input_choice(self):
         user_input = ['6', '1']
         with patch('builtins.input', side_effect=user_input):
-            self.q.parse_updates_info(UPDATE_INFO)
-            choice = self.q.user_input(self.q.updates_list)
+            self.q._parse_updates_info(UPDATE_INFO)
+            choice = self.q._user_input(self.q.updates_list)
         self.assertEqual(choice, 0)
 
     def test_parse_parameters(self):
-        self.q.parse_updates_info(UPDATE_INFO)
-        self.q.parse_parameters(self.q.updates_list, 0)
+        self.q._parse_updates_info(UPDATE_INFO)
+        self.q._parse_parameters(self.q.updates_list, 0)
         self.assertListEqual(
             self.q.url,
             ["https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab"]
-            )
+        )
         self.assertListEqual(
             self.q.sha,
             ["490be5c0b13ca4a3f169bf8bc682ba127b8f7b96"]
+        )
+
+    def test_clean_cache(self):
+        self.q.clean_cache()
+        self.assertFalse(path.exists(FWUPD_DOM0_METADATA_DIR))
+        self.assertFalse(path.exists(FWUPD_DOM0_UNTRUSTED_DIR))
+
+    def test_output_crawler(self):
+        crawler_output = io.StringIO()
+        sys.stdout = crawler_output
+        self.q._output_crawler(json.loads(UPDATE_INFO), 0)
+        sys.stdout = sys.__stdout__
+        with open("test/logs/getupdates.log", "r") as getupdates:
+            self.assertEqual(
+                getupdates.read(),
+                crawler_output.getvalue().strip()
             )
+        sys.stdout = self.captured_output
+
+    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    def test_get_devices(self):
+        self.q._get_devices()
+        self.assertIsNotNone(self.q.devices_info)
+
+    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    def test_get_devices_qubes(self):
+        get_devices_output = io.StringIO()
+        sys.stdout = get_devices_output
+        self.q.get_devices_qubes()
+        self.assertNotEqual(get_devices_output.getvalue().strip(), "")
+        sys.stdout = self.captured_output
+
+    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    def test_get_updates_qubes(self):
+        get_devices_output = io.StringIO()
+        sys.stdout = get_devices_output
+        self.q.get_devices_qubes()
+        self.assertNotEqual(get_devices_output.getvalue().strip(), "")
+        sys.stdout = self.captured_output
+
+    def test_help(self):
+        help_output = io.StringIO()
+        sys.stdout = help_output
+        self.q.help()
+        with open("test/logs/help.log", "r") as help_log:
+            self.assertEqual(
+                help_log.read(),
+                help_output.getvalue().strip()
+            )
+        sys.stdout = self.captured_output
 
 
 if __name__ == '__main__':
