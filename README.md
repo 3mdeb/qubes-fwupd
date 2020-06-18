@@ -6,5 +6,5 @@ fwupd wrappers for QubesOS
 
 ```
 cd /usr/share/fwupd-qubes/
-python -m unittest test.test_qubes_fwupdmgr
+python3 -m unittest test.test_qubes_fwupdmgr
 ```

@@ -27,10 +27,10 @@ UPDATEVM=`qubes-prefs --force-root updatevm`
 FWUPD_DOM0_CACHE_FILES=/root/.cache/fwupd
 FWUPD_UPDATEVM_CACHE_FILES=/home/user/.cache/fwupd
 
-#if [ -z "$UPDATEVM" ]; then
-#    echo "UpdateVM not set, exiting"
-#    exit 1
-#fi
+if [ -z "$UPDATEVM" ]; then
+    echo "UpdateVM not set, exiting"
+    exit 1
+fi
 
 if [ "$1" = "--help" ]; then
     echo "This tool is used to download packages for dom0. Without package list"
@@ -112,7 +112,7 @@ qvm-run --nogui -q -u root $UPDATEVM "mkdir -m 775 -p $FWUPD_UPDATEVM_CACHE_FILE
 qvm-run --nogui -q -u root $UPDATEVM "chown -R user:user $FWUPD_UPDATEVM_CACHE_FILES" || exit 1
 
 # Setup fwupd-download-updates comandline
-FW_UPDATE_SCRIPT="/usr/lib/qubes/fwupd-download-updates.sh"
+FW_UPDATE_SCRIPT="/usr/lib/qubes-fwupd/fwupd-download-updates.sh"
 if [ "$METADATA" == 1 ]; then
     rm -rf $FWUPD_DOM0_CACHE_FILES/metadata
     FW_UPDATE_SCRIPT_ARGS="--metadata"
