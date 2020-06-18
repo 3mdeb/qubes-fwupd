@@ -171,16 +171,12 @@ class QubesFwupdmgr:
 
     def _install_firmware_update(self, path):
         cmd_install = [
-            "/bin/fwudpmgr",
+            "/bin/fwupdmgr",
             "install",
             path
         ]
-        p = subprocess.Popen(
-            cmd_install,
-            stdout=subprocess.STDOUT,
-            stderr=subprocess.STDOUT
-        )
-        p.communicate()[0].decode("ascii")
+        p = subprocess.Popen(cmd_install)
+        p.wait()
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Firmware update failed")
 

@@ -98,7 +98,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.q.refresh_metadata()
         self.assertEqual(
             self.q.output,
-            'Successfully refreshed metadata manually',
+            'Successfully refreshed metadata manually\n',
             msg="Metadata refresh failed."
         )
 
