@@ -26,7 +26,7 @@ import subprocess
 import sys
 
 FWUPD_QUBES_DIR = "/usr/share/fwupd-qubes"
-FWUPD_DOM0_UPDATE = FWUPD_QUBES_DIR + "/scripts/fwupd-dom0-update"
+FWUPD_DOM0_UPDATE = FWUPD_QUBES_DIR + "/src/fwupd-dom0-update"
 FWUPD_DOM0_DIR = "/root/.cache/fwupd/"
 FWUPD_DOM0_METADATA_DIR = FWUPD_DOM0_DIR + "metadata/"
 FWUPD_DOM0_METADATA_SIGNATURE = FWUPD_DOM0_METADATA_DIR + "firmware.xml.gz.asc"
@@ -62,15 +62,11 @@ class QubesFwupdmgr:
             FWUPD_DOM0_UPDATE,
             "--metadata"
         ]
-        p = subprocess.Popen(
-            cmd_metadata,
-            stdout=subprocess.STDOUT,
-            stderr=subprocess.STDOUT
-        )
-        p.communicate()[0].decode("ascii")
+        p = subprocess.Popen(cmd_metadata)
+        p.wait()
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Metadata update failed")
-        if os.path.exists(FWUPD_DOM0_METADATA_FILE):
+        if not os.path.exists(FWUPD_DOM0_METADATA_FILE):
             raise ValueError("Metadata signature does not exist")
 
     def refresh_metadata(self):
@@ -89,7 +85,7 @@ class QubesFwupdmgr:
         self.output = p.communicate()[0].decode()
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Refresh failed")
-        if METADATA_REFRESH_REGEX.match(self.output):
+        if not METADATA_REFRESH_REGEX.match(self.output):
             raise ValueError("Metadata signature does not exist")
 
     def _get_updates(self):
@@ -122,22 +118,18 @@ class QubesFwupdmgr:
         ]
 
     def _download_firmware_updates(self, url, sha):
-        name = url - "https://fwupd.org/downloads/"
+        name = url.replace("https://fwupd.org/downloads/", "")
         cmd_fwdownload = [
             FWUPD_DOM0_UPDATE,
             "--update",
             "--url=%s" % url,
             "--sha=%s" % sha
         ]
-        p = subprocess.Popen(
-            cmd_fwdownload,
-            stdout=subprocess.STDOUT,
-            stderr=subprocess.STDOUT
-        )
-        p.communicate()[0].decode("ascii")
+        p = subprocess.Popen(cmd_fwdownload)
+        p.wait()
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Firmware download failed")
-        if os.path.exists(FWUPD_DOM0_UPDATES_DIR + name[:-4]):
+        if not os.path.exists(FWUPD_DOM0_UPDATES_DIR + name[:-4]):
             raise ValueError("Firmware update files do not exist")
 
     def _user_input(self, updates_list):
