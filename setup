@@ -23,5 +23,7 @@ qvm-run --nogui -q -u root $UPDATEVM 'mkdir /usr/lib/qubes-fwupd' || exit 1
 ln -s /usr/share/fwupd-qubes/src/qubes_fwupdmgr.py /bin/qubes-fwupdmgr
 
 # Copy script to updateVM
-cat src/fwupd-download-updates.sh | qvm-run --pass-io -u root sys-firewall \
+cat src/fwupd-download-updates.sh | qvm-run --pass-io -u root $UPDATEVM \
     'cat > /usr/lib/qubes-fwupd/fwupd-download-updates.sh'
+qvm-run --nogui -q -u root $UPDATEVM \
+    'chmod +x /usr/lib/qubes-fwupd/fwupd-download-updates.sh' || exit 1

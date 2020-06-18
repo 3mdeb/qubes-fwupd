@@ -33,15 +33,14 @@ if [ -z "$UPDATEVM" ]; then
 fi
 
 if [ "$1" = "--help" ]; then
-    echo "This tool is used to download packages for dom0. Without package list"
-    echo "it checks for updates for installed packages"
+    echo "This tool is used to download fwupd updates files."
     echo ""
-    echo "Usage: $0 [--clean] [--check-only] [--gui] [<pkg list>]"
+    echo "Usage: $0 [--clean] [--metadata] [--update --url=... --sha=...] "
     echo "    --clean      clean cache before doing anything"
     echo "    --metadata   inits metadata download"
     echo "    --update     inits firmware update files download"
     echo "    --url=       firmware update url"
-    echo "    --sha=       firmware upadte sha1 checksum"
+    echo "    --sha=       firmware update sha1 checksum"
     exit
 fi
 
@@ -72,7 +71,7 @@ while [ $# -gt 0 ]; do
             SHASUM=${1#--sha=}
             ;;
         *)
-            echo "Command unknown"
+            echo "Command not found: $1"
             exit 1
             ;;
     esac
@@ -111,7 +110,7 @@ qvm-run --nogui -q -u root $UPDATEVM "mkdir -m 775 -p $FWUPD_UPDATEVM_CACHE_FILE
 qvm-run --nogui -q -u root $UPDATEVM "mkdir -m 775 -p $FWUPD_UPDATEVM_CACHE_FILES/updates" || exit 1
 qvm-run --nogui -q -u root $UPDATEVM "chown -R user:user $FWUPD_UPDATEVM_CACHE_FILES" || exit 1
 
-# Setup fwupd-download-updates comandline
+# Setup fwupd-download-updates commandline
 FW_UPDATE_SCRIPT="/usr/lib/qubes-fwupd/fwupd-download-updates.sh"
 if [ "$METADATA" == 1 ]; then
     rm -rf $FWUPD_DOM0_CACHE_FILES/metadata

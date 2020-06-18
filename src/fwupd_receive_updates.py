@@ -29,19 +29,30 @@ import shutil
 import sys
 import subprocess
 
-FWUPD_DOM0_DIR = "/root/.cache/fwupd/"
-FWUPD_DOM0_METADATA_DIR = FWUPD_DOM0_DIR + "metadata/"
-FWUPD_DOM0_METADATA_SIGNATURE = FWUPD_DOM0_METADATA_DIR + "firmware.xml.gz.asc"
-FWUPD_DOM0_METADATA_FILE = FWUPD_DOM0_METADATA_DIR + "firmware.xml.gz"
-FWUPD_DOM0_UPDATES_DIR = FWUPD_DOM0_DIR + "updates/"
-FWUPD_DOM0_UNTRUSTED_DIR = FWUPD_DOM0_UPDATES_DIR + "untrusted/"
-
-FWUPD_UPDATEVM_DIR = "/home/user/.cache/fwupd/"
-FWUPD_UPDATEVM_METADATA_DIR = FWUPD_UPDATEVM_DIR + "metadata/"
-FWUPD_UPDATEVM_METADATA_SIGNATURE = FWUPD_UPDATEVM_METADATA_DIR + \
+FWUPD_DOM0_DIR = "/root/.cache/fwupd"
+FWUPD_DOM0_UPDATES_DIR = path.join(FWUPD_DOM0_DIR, "updates")
+FWUPD_DOM0_UNTRUSTED_DIR = path.join(FWUPD_DOM0_UPDATES_DIR, "untrusted")
+FWUPD_DOM0_METADATA_DIR = path.join(FWUPD_DOM0_DIR, "metadata")
+FWUPD_DOM0_METADATA_SIGNATURE = path.join(
+    FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz.asc"
-FWUPD_UPDATEVM_METADATA_FILE = FWUPD_UPDATEVM_METADATA_DIR + "firmware.xml.gz"
-FWUPD_UPDATEVM_UPDATES_DIR = FWUPD_UPDATEVM_DIR + "updates/"
+)
+FWUPD_DOM0_METADATA_FILE = path.join(
+    FWUPD_DOM0_METADATA_DIR,
+    "firmware.xml.gz"
+)
+
+FWUPD_UPDATEVM_DIR = "/home/user/.cache/fwupd"
+FWUPD_UPDATEVM_UPDATES_DIR = path.join(FWUPD_UPDATEVM_DIR, "updates")
+FWUPD_UPDATEVM_METADATA_DIR = path.join(FWUPD_UPDATEVM_DIR, "metadata")
+FWUPD_UPDATEVM_METADATA_SIGNATURE = path.join(
+    FWUPD_UPDATEVM_METADATA_DIR,
+    "firmware.xml.gz.asc"
+)
+FWUPD_UPDATEVM_METADATA_FILE = path.join(
+    FWUPD_UPDATEVM_METADATA_DIR,
+    "firmware.xml.gz"
+)
 
 FWUPD_METADATA_FILES_REGEX = re.compile(r"^firmware.xml.gz.?a?s?c?$")
 FWUPD_FIRMWARE_FLAG_REGEX = re.compile(r"^updateflag-[A-Za-z0-9]{1,128}\.cab")
@@ -86,7 +97,7 @@ class FwupdReceiveUpdates:
             assert '/' not in f
             assert '\0' not in f
             assert '\x1b' not in f
-            archive_path = files_path + f
+            archive_path = path.join(files_path, f)
             if os.path.islink(archive_path) or not os.path.isfile(archive_path):
                 raise TypeError(
                     'Domain ' + self.source + ' sent not regular file'
@@ -144,16 +155,22 @@ class FwupdReceiveUpdates:
 
     def handle_fw_update(self, updatevm, shasum, filename):
         fwupd_firmware_file_regex = re.compile(filename)
-        dom0_firmware_untrusted_path = FWUPD_DOM0_UNTRUSTED_DIR + filename
-        updatevm_firmware_file_path = FWUPD_UPDATEVM_UPDATES_DIR + filename
+        dom0_firmware_untrusted_path = os.path.join(
+            FWUPD_DOM0_UNTRUSTED_DIR,
+            filename
+        )
+        updatevm_firmware_file_path = os.path.join(
+            FWUPD_UPDATEVM_UPDATES_DIR,
+            filename
+        )
 
         self._check_domain(updatevm)
         self._create_dirs(FWUPD_DOM0_UPDATES_DIR, FWUPD_DOM0_UNTRUSTED_DIR)
 
         cmd = "/usr/bin/qvm-run --pass-io "
-        cmd += self.source
-        cmd += " 'cat %s' > " % updatevm_firmware_file_path
-        cmd += dom0_firmware_untrusted_path
+        cmd.join(self.source)
+        cmd.join(" 'cat %s' > " % updatevm_firmware_file_path)
+        cmd.join(dom0_firmware_untrusted_path)
         if os.system(cmd):
             raise Exception('qvm-run: Copying firmware file failed!!')
 
@@ -162,12 +179,15 @@ class FwupdReceiveUpdates:
             fwupd_firmware_file_regex
         )
         self._check_shasum(dom0_firmware_untrusted_path, shasum)
-        output_path = FWUPD_DOM0_UNTRUSTED_DIR + filename[:-4]
+        untrusted_dir_name = filename.replace(".cab", "")
+        output_path = path.join(FWUPD_DOM0_UNTRUSTED_DIR, untrusted_dir_name)
         self._extract_archive(dom0_firmware_untrusted_path, output_path)
-        file_path = glob.glob(output_path+"/firmware*.asc")
-        self._gpg_verification(file_path[0][:-4])
+        signature_name = path.join(output_path, "firmware*.asc")
+        file_path = glob.glob(signature_name)
+        self._gpg_verification(file_path[0].replace(".asc", ""))
         os.umask(self.old_umask)
-        shutil.move(output_path, FWUPD_DOM0_UPDATES_DIR + filename[:-4])
+        dir_name = path.join(FWUPD_DOM0_UPDATES_DIR, untrusted_dir_name)
+        shutil.move(output_path, dir_name)
         shutil.rmtree(FWUPD_DOM0_UNTRUSTED_DIR)
         exit(0)
 
@@ -176,11 +196,13 @@ class FwupdReceiveUpdates:
         self._create_dirs(FWUPD_DOM0_METADATA_DIR)
 
         cmd = "/usr/bin/qvm-run --pass-io "
-        cmd += self.source
-        cmd_signature = cmd + " 'cat %s' > " % FWUPD_UPDATEVM_METADATA_SIGNATURE
-        cmd_signature += FWUPD_DOM0_METADATA_SIGNATURE
-        cmd += " 'cat %s' > " % FWUPD_UPDATEVM_METADATA_FILE
-        cmd += FWUPD_DOM0_METADATA_FILE
+        cmd.join(self.source)
+        cmd_signature = cmd.join(
+            " 'cat %s' > " % FWUPD_UPDATEVM_METADATA_SIGNATURE
+        )
+        cmd_signature.join(FWUPD_DOM0_METADATA_SIGNATURE)
+        cmd.join(" 'cat %s' > " % FWUPD_UPDATEVM_METADATA_FILE)
+        cmd.join(FWUPD_DOM0_METADATA_FILE)
         if os.system(cmd):
             raise Exception('qvm-run: Copying metadata file failed!!')
         if os.system(cmd_signature):

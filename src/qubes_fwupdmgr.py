@@ -26,12 +26,18 @@ import subprocess
 import sys
 
 FWUPD_QUBES_DIR = "/usr/share/fwupd-qubes"
-FWUPD_DOM0_UPDATE = FWUPD_QUBES_DIR + "/src/fwupd-dom0-update"
-FWUPD_DOM0_DIR = "/root/.cache/fwupd/"
-FWUPD_DOM0_METADATA_DIR = FWUPD_DOM0_DIR + "metadata/"
-FWUPD_DOM0_METADATA_SIGNATURE = FWUPD_DOM0_METADATA_DIR + "firmware.xml.gz.asc"
-FWUPD_DOM0_METADATA_FILE = FWUPD_DOM0_METADATA_DIR + "firmware.xml.gz"
-FWUPD_DOM0_UPDATES_DIR = FWUPD_DOM0_DIR + "updates/"
+FWUPD_DOM0_UPDATE = os.path.join(FWUPD_QUBES_DIR, "src/fwupd-dom0-update")
+FWUPD_DOM0_DIR = "/root/.cache/fwupd"
+FWUPD_DOM0_METADATA_DIR = os.path.join(FWUPD_DOM0_DIR, "/metadata")
+FWUPD_DOM0_UPDATES_DIR = os.path.join(FWUPD_DOM0_DIR, "/updates")
+FWUPD_DOM0_METADATA_SIGNATURE = os.path.join(
+    FWUPD_DOM0_METADATA_DIR,
+    "firmware.xml.gz.asc"
+)
+FWUPD_DOM0_METADATA_FILE = os.path.join(
+    FWUPD_DOM0_METADATA_DIR,
+    "firmware.xml.gz"
+)
 
 METADATA_REFRESH_REGEX = re.compile(
     r"^Successfully refreshed metadata manually$"
@@ -119,6 +125,10 @@ class QubesFwupdmgr:
 
     def _download_firmware_updates(self, url, sha):
         name = url.replace("https://fwupd.org/downloads/", "")
+        update_path = os.path.join(
+            FWUPD_DOM0_UPDATES_DIR,
+            name.replace(".cab", "")
+        )
         cmd_fwdownload = [
             FWUPD_DOM0_UPDATE,
             "--update",
@@ -129,7 +139,7 @@ class QubesFwupdmgr:
         p.wait()
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Firmware download failed")
-        if not os.path.exists(FWUPD_DOM0_UPDATES_DIR + name[:-4]):
+        if not os.path.exists(update_path):
             raise ValueError("Firmware update files do not exist")
 
     def _user_input(self, updates_list):
@@ -207,7 +217,7 @@ class QubesFwupdmgr:
             self._download_firmware_updates(url, self.sha[i])
             self._verify_dmi()
             name = url.replace("https://fwupd.org/downloads/", "")
-            path = FWUPD_DOM0_UPDATES_DIR + name
+            path = os.path.join(FWUPD_DOM0_UPDATES_DIR, name)
             self._install_firmware_update(path)
 
     def _output_crawler(self, updev_dict, level):
