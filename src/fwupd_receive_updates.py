@@ -162,7 +162,7 @@ class FwupdReceiveUpdates:
             )
 
     def _gpg_verification(self, file_path):
-        """Inspects GPG signature
+        """Inspects GPG signature.
 
         Keyword argument:
         file_path -- absolute path to inspected file
@@ -189,7 +189,7 @@ class FwupdReceiveUpdates:
             )
 
     def handle_fw_update(self, updatevm, shasum, filename):
-        """Handles copying firmware update archives from the updateVM
+        """Handles copying firmware update archives from the updateVM.
 
         Keyword arguments:
         updatevm -- update VM name
@@ -234,7 +234,7 @@ class FwupdReceiveUpdates:
         exit(0)
 
     def handle_metadata_update(self, updatevm):
-        """Handles copying metadata files from the updateVM
+        """Handles copying metadata files from the updateVM.
 
         Keyword argument:
         updatevm -- update VM name

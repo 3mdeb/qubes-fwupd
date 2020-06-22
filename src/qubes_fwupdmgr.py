@@ -18,12 +18,14 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 #
+import distutils.version as ver
 import json
 import os
 import re
 import shutil
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 
 FWUPD_QUBES_DIR = "/usr/share/fwupd-qubes"
 FWUPD_DOM0_UPDATE = os.path.join(FWUPD_QUBES_DIR, "src/fwupd-dom0-update")
@@ -195,12 +197,14 @@ class QubesFwupdmgr:
                 print("Invalid choice.")
 
     def _parse_parameters(self, updates_list, choice):
-        """Parses url and SHA1 checksum of the file list.
+        """Parses device name, url, version and SHA1 checksum of the file list.
 
         Keywords arguments:
         updates_list - list of updates for specified device
         choice -- number of the device to be updated
         """
+        self.name = updates_list[choice][0]
+        self.version = [version[0] for version in updates_list[choice][2]]
         self.url = [url[1] for url in updates_list[choice][2]]
         self.sha = [sha[2] for sha in updates_list[choice][2]]
 
@@ -220,9 +224,52 @@ class QubesFwupdmgr:
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Firmware update failed")
 
-    def _verify_dmi(self):
-        """Verifies DMI tables for BIOS updates"""
-        pass
+    def _read_dmi(self):
+        """Reads BIOS information from DMI."""
+        cmd_dmidecode = [
+            "dmidecode",
+            "-t",
+            "bios"
+        ]
+        p = subprocess.Popen(cmd_dmidecode, stdout=subprocess.PIPE)
+        p.wait()
+        if p.returncode != 0:
+            raise Exception("dmidecode: Reading DMI failed")
+        return p.communicate()[0].decode()
+
+    def _verify_dmi(self, path, version, downgrade=False):
+        """Verifies DMI tables for BIOS updates.
+
+        Keywords arguments:
+        path -- updates file absolute path
+        version -- version of the update
+        downgrade -- downgrade flag
+        """
+        dmi_info = self._read_dmi()
+        path_metainfo = os.path.join(path, "firmware.metainfo.xml")
+        tree = ET.parse(path_metainfo)
+        root = tree.getroot()
+        vendor = root.find("developer_name").text
+        if vendor is None:
+            raise ValueError("No vendor information in firmware metainfo.")
+        if vendor not in dmi_info:
+            raise ValueError("Wrong firmware provider.")
+        metainfo_ver = root.find("releases").find("release").attrib['version']
+        if version != metainfo_ver:
+            raise ValueError("Wrong firmware version.")
+        # Parsing version from dmidecode output
+        for line in dmi_info.split("\n"):
+            if 'Version: ' in line:
+                dmi_ver = line.split(': ')[1]
+        if not downgrade:
+            if ver.LooseVersion(metainfo_ver) < ver.LooseVersion(dmi_ver):
+                raise ValueError(
+                    "%s < %s Downgrade not allowed" %
+                    (
+                        metainfo_ver,
+                        dmi_ver
+                    )
+                )
 
     def _get_devices(self):
         """Gathers infromations about connected devices."""
@@ -248,10 +295,12 @@ class QubesFwupdmgr:
         self._parse_parameters(self.updates_list, choice)
         for i, url in enumerate(self.url):
             self._download_firmware_updates(url, self.sha[i])
-            self._verify_dmi()
             name = url.replace("https://fwupd.org/downloads/", "")
-            path = os.path.join(FWUPD_DOM0_UPDATES_DIR, name)
-            self._install_firmware_update(path)
+            arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, name)
+            if self.name == "System Firmware":
+                path = arch_path.replace(".cab", "")
+                self._verify_dmi(path, self.version[i])
+            self._install_firmware_update(arch_path)
 
     def _output_crawler(self, updev_dict, level):
         """Prints device and updates informations as a tree.
@@ -303,6 +352,10 @@ class QubesFwupdmgr:
 
 
 def main():
+    if os.geteuid() != 0:
+        raise PermissionError(
+            "You need to have root privileges to run this script."
+        )
     q = QubesFwupdmgr()
     if sys.argv[1] == "get-updates":
         q.get_updates_qubes()

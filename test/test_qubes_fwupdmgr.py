@@ -73,6 +73,40 @@ UPDATE_INFO = """{
                  }
 """
 
+DMI_DECODE ="""# dmidecode 3.1
+Getting SMBIOS data from sysfs.
+SMBIOS 3.1.1 present.
+
+Handle 0x0000, DMI type 0, 26 bytes
+BIOS Information
+    Vendor: Dell Inc.
+    Version: P1.00
+    Release Date: 02/09/2018
+    Address: 0xF0000
+    Runtime Size: 64 kB
+    ROM Size: 16 MB
+    Characteristics:
+        PCI is supported
+        BIOS is upgradeable
+        BIOS shadowing is allowed
+        Boot from CD is supported
+        Selectable boot is supported
+        BIOS ROM is socketed
+        EDD is supported
+        5.25"/1.2 MB floppy services are supported (int 13h)
+        3.5"/720 kB floppy services are supported (int 13h)
+        3.5"/2.88 MB floppy services are supported (int 13h)
+        Print screen service is supported (int 5h)
+        8042 keyboard services are supported (int 9h)
+        Serial services are supported (int 14h)
+        Printer services are supported (int 17h)
+        ACPI is supportedUSB legacy is supported
+        BIOS boot specification is supported
+        Targeted content distribution is supported
+        UEFI is supported
+    BIOS Revision: 5.13
+"""
+
 
 class TestQubesFwupdmgr(unittest.TestCase):
     def setUp(self):
@@ -177,6 +211,10 @@ class TestQubesFwupdmgr(unittest.TestCase):
             self.q.sha,
             ["490be5c0b13ca4a3f169bf8bc682ba127b8f7b96"]
         )
+        self.assertListEqual(
+            self.q.version,
+            ["2.0.7"]
+        )
 
     def test_clean_cache(self):
         self.q.clean_cache()
@@ -226,6 +264,46 @@ class TestQubesFwupdmgr(unittest.TestCase):
                 help_output.getvalue().strip()
             )
         sys.stdout = self.captured_output
+
+    @patch(
+        'src.qubes_fwupdmgr.QubesFwupdmgr._read_dmi',
+        return_value=DMI_DECODE
+    )
+    def test_verify_dmi(self, output):
+        self.q._verify_dmi("test/logs/", "P1.1")
+
+    @patch(
+        'src.qubes_fwupdmgr.QubesFwupdmgr._read_dmi',
+        return_value=DMI_DECODE
+    )
+    def test_verify_dmi_wrong_vendor(self, output):
+        with self.assertRaises(ValueError) as wrong_vendor:
+            self.q._verify_dmi("test/logs/metainfo_name/", "P1.1")
+        self.assertTrue(
+            "Wrong firmware provider." in str(wrong_vendor.exception)
+        )
+
+    @patch(
+        'src.qubes_fwupdmgr.QubesFwupdmgr._read_dmi',
+        return_value=DMI_DECODE
+    )
+    def test_verify_dmi_argument_version(self, output):
+        with self.assertRaises(ValueError) as argument_version:
+            self.q._verify_dmi("test/logs/", "P1.0")
+        self.assertTrue(
+            "Wrong firmware version." in str(argument_version.exception)
+        )
+
+    @patch(
+        'src.qubes_fwupdmgr.QubesFwupdmgr._read_dmi',
+        return_value=DMI_DECODE
+    )
+    def test_verify_dmi_version(self, output):
+        with self.assertRaises(ValueError) as downgrade:
+            self.q._verify_dmi("test/logs/metainfo_version/", "P0.1")
+        self.assertTrue(
+            "P0.1 < P1.00 Downgrade not allowed" in str(downgrade.exception)
+        )
 
 
 if __name__ == '__main__':
