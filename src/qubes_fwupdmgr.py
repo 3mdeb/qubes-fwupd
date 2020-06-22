@@ -353,11 +353,12 @@ class QubesFwupdmgr:
 
 def main():
     if os.geteuid() != 0:
-        raise PermissionError(
-            "You need to have root privileges to run this script."
-        )
+        print("You need to have root privileges to run this script.\n")
+        exit(1)
     q = QubesFwupdmgr()
-    if sys.argv[1] == "get-updates":
+    if len(sys.argv) < 2:
+        q.help()
+    elif sys.argv[1] == "get-updates":
         q.get_updates_qubes()
     elif sys.argv[1] == "get-devices":
         q.get_devices_qubes()
