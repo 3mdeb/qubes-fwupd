@@ -64,6 +64,7 @@ HELP = {
 
 class QubesFwupdmgr:
     def _download_metadata(self):
+        """Initialize downloading metadata files."""
         cmd_metadata = [
             FWUPD_DOM0_UPDATE,
             "--metadata"
@@ -76,6 +77,7 @@ class QubesFwupdmgr:
             raise ValueError("Metadata signature does not exist")
 
     def refresh_metadata(self):
+        """Updates metadata with downloaded files."""
         self._download_metadata()
         cmd_refresh = [
             "/bin/fwupdmgr",
@@ -95,6 +97,7 @@ class QubesFwupdmgr:
             raise ValueError("Metadata signature does not exist")
 
     def _get_updates(self):
+        """Gathers infromations about available updates."""
         cmd_get_updates = [
             "/bin/fwupdagent",
             "get-updates"
@@ -108,6 +111,11 @@ class QubesFwupdmgr:
             raise Exception("fwudp-qubes: Getting available updates failed")
 
     def _parse_updates_info(self, updates_info):
+        """Creates dictionary and list with informations about updates.
+
+        Keywords argument:
+        updates_info - gathered update informations
+        """
         self.updates_info_dict = json.loads(updates_info)
         self.updates_list = [
             [
@@ -124,6 +132,12 @@ class QubesFwupdmgr:
         ]
 
     def _download_firmware_updates(self, url, sha):
+        """Initializes downloading firmware upadate archive.
+
+        Keywords arguments:
+        url -- url path to firmware upadate archive
+        sha -- SHA1 checksum of the firmware update archive
+        """
         name = url.replace("https://fwupd.org/downloads/", "")
         update_path = os.path.join(
             FWUPD_DOM0_UPDATES_DIR,
@@ -143,6 +157,11 @@ class QubesFwupdmgr:
             raise ValueError("Firmware update files do not exist")
 
     def _user_input(self, updates_list):
+        """UI for update process.
+
+        Keywords arguments:
+        updates_list - list of updates for specified device
+        """
         if len(updates_list) == 0:
             print("No updates available.")
             return 99
@@ -176,10 +195,21 @@ class QubesFwupdmgr:
                 print("Invalid choice.")
 
     def _parse_parameters(self, updates_list, choice):
+        """Parses url and SHA1 checksum of the file list.
+
+        Keywords arguments:
+        updates_list - list of updates for specified device
+        choice -- number of the device to be updated
+        """
         self.url = [url[1] for url in updates_list[choice][2]]
         self.sha = [sha[2] for sha in updates_list[choice][2]]
 
     def _install_firmware_update(self, path):
+        """Installs firmware update for specified device.
+
+        Keywords arguments:
+        path - absolute path to firmware update path
+        """
         cmd_install = [
             "/bin/fwupdmgr",
             "install",
@@ -191,9 +221,11 @@ class QubesFwupdmgr:
             raise Exception("fwudp-qubes: Firmware update failed")
 
     def _verify_dmi(self):
+        """Verifies DMI tables for BIOS updates"""
         pass
 
     def _get_devices(self):
+        """Gathers infromations about connected devices."""
         cmd_get_devices = [
             "/bin/fwupdagent",
             "get-devices"
@@ -207,6 +239,7 @@ class QubesFwupdmgr:
             raise Exception("fwudp-qubes: Getting devices info failed")
 
     def update_firmware(self):
+        "Handles firmware update process."
         self._get_updates()
         self._parse_updates_info(self.updates_info)
         choice = self._user_input(self.updates_list)
@@ -221,6 +254,12 @@ class QubesFwupdmgr:
             self._install_firmware_update(path)
 
     def _output_crawler(self, updev_dict, level):
+        """Prints device and updates informations as a tree.
+
+        Keywords arguments:
+        updev_dict -- update/device information dictionary
+        level -- level of the tree
+        """
         def _tabs(key_word):
             return key_word + '\t'*(3 - int(len(key_word)/8))
         for updev_key in updev_dict:
@@ -239,16 +278,19 @@ class QubesFwupdmgr:
                     self._output_crawler(nested_dict, level+1)
 
     def get_devices_qubes(self):
+        """Gathers and prints devices information."""
         self._get_devices()
         devices_info_dict = json.loads(self.devices_info)
         self._output_crawler(devices_info_dict, 0)
 
     def get_updates_qubes(self):
+        """Gathers and prints updates information."""
         self._get_updates()
         self._parse_updates_info(self.updates_info)
         self._output_crawler(self.updates_info_dict, 0)
 
     def clean_cache(self):
+        """Removes updates data"""
         print("Cleaning cache directories")
         if os.path.exists(FWUPD_DOM0_METADATA_DIR):
             shutil.rmtree(FWUPD_DOM0_METADATA_DIR)
@@ -256,6 +298,7 @@ class QubesFwupdmgr:
             shutil.rmtree(FWUPD_DOM0_UPDATES_DIR)
 
     def help(self):
+        """Prints help informations"""
         self._output_crawler(HELP, 0)
 
 

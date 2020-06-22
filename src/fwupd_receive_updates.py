@@ -64,6 +64,12 @@ GPG_LVFS_REGEX = re.compile(
 
 class FwupdReceiveUpdates:
     def _check_shasum(self, file_path, sha):
+        """Compares computed SHA1 checksum with `sha` parameter.
+
+        Keyword arguments:
+        file_path -- absolute path to file
+        sha -- SHA1 checksum of the file
+        """
         # Count sha1 checksum
         with open(file_path, 'rb') as f:
             c_sha = hashlib.sha1(f.read()).hexdigest()
@@ -75,6 +81,12 @@ class FwupdReceiveUpdates:
 
     def _check_domain(self, updatevm):
         # Check if updateVM is allowed to provide update files
+        """Checks if domain given as `updatevm` is allowed to send update
+        files.
+
+        Keyword argument:
+        updatevm - domain to be checked
+        """
         cmd = ['qubes-prefs', '--force-root', 'updatevm']
         p = subprocess.check_output(cmd)
         self.source = p.decode('ascii').rstrip()
@@ -87,6 +99,13 @@ class FwupdReceiveUpdates:
             exit(1)
 
     def _verify_received(self, files_path, regex_pattern):
+        """Checks if sent files are expected.
+
+        Keyword arguments:
+
+        files_path -- absolute path to inspected directory
+        regex_pattern -- pattern of the expected files
+        """
         # Verify received files
         for untrusted_f in os.listdir(files_path):
             if not regex_pattern.match(untrusted_f):
@@ -97,13 +116,18 @@ class FwupdReceiveUpdates:
             assert '/' not in f
             assert '\0' not in f
             assert '\x1b' not in f
-            archive_path = path.join(files_path, f)
-            if os.path.islink(archive_path) or not os.path.isfile(archive_path):
+            path_f = path.join(files_path, f)
+            if os.path.islink(path_f) or not os.path.isfile(path_f):
                 raise TypeError(
                     'Domain ' + self.source + ' sent not regular file'
                 )
 
     def _create_dirs(self, *args):
+        """Method creates directories.
+
+        Keyword arguments:
+        *args -- paths to be created
+        """
         # Create directories for update files
         qubes_gid = grp.getgrnam('qubes').gr_gid
         self.old_umask = os.umask(0o002)
@@ -116,6 +140,12 @@ class FwupdReceiveUpdates:
                 os.chmod(file_path, 0o0775)
 
     def _extract_archive(self, archive_path, output_path):
+        """Extracts archive file to specified directory.
+
+        Keyword arguments:
+        archive_path -- absolute path to archive file
+        output_path -- absolute output directory
+        """
         cmd_extract = [
             "cabextract",
             "-d",
@@ -132,6 +162,11 @@ class FwupdReceiveUpdates:
             )
 
     def _gpg_verification(self, file_path):
+        """Inspects GPG signature
+
+        Keyword argument:
+        file_path -- absolute path to inspected file
+        """
         cmd_gpg = [
             "gpg",
             "--verify",
@@ -154,6 +189,13 @@ class FwupdReceiveUpdates:
             )
 
     def handle_fw_update(self, updatevm, shasum, filename):
+        """Handles copying firmware update archives from the updateVM
+
+        Keyword arguments:
+        updatevm -- update VM name
+        shasum -- SHA1 checksum of the firmware update archive
+        filename -- name of the firmware update archive
+        """
         fwupd_firmware_file_regex = re.compile(filename)
         dom0_firmware_untrusted_path = os.path.join(
             FWUPD_DOM0_UNTRUSTED_DIR,
@@ -192,6 +234,11 @@ class FwupdReceiveUpdates:
         exit(0)
 
     def handle_metadata_update(self, updatevm):
+        """Handles copying metadata files from the updateVM
+
+        Keyword argument:
+        updatevm -- update VM name
+        """
         self._check_domain(updatevm)
         self._create_dirs(FWUPD_DOM0_METADATA_DIR)
 
