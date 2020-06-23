@@ -203,17 +203,17 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_parse_parameters(self):
         self.q._parse_updates_info(UPDATE_INFO)
         self.q._parse_parameters(self.q.updates_list, 0)
-        self.assertListEqual(
+        self.assertEqual(
             self.q.url,
-            ["https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab"]
+            "https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab"
         )
-        self.assertListEqual(
+        self.assertEqual(
             self.q.sha,
-            ["490be5c0b13ca4a3f169bf8bc682ba127b8f7b96"]
+            "490be5c0b13ca4a3f169bf8bc682ba127b8f7b96"
         )
-        self.assertListEqual(
+        self.assertEqual(
             self.q.version,
-            ["2.0.7"]
+            "2.0.7"
         )
 
     def test_clean_cache(self):

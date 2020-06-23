@@ -204,9 +204,12 @@ class QubesFwupdmgr:
         choice -- number of the device to be updated
         """
         self.name = updates_list[choice][0]
-        self.version = [version[0] for version in updates_list[choice][2]]
-        self.url = [url[1] for url in updates_list[choice][2]]
-        self.sha = [sha[2] for sha in updates_list[choice][2]]
+        self.version = updates_list[choice][2][0][0]
+        for ver_check in updates_list[choice][2]:
+            if ver.LooseVersion(ver_check[0]) >= ver.LooseVersion(self.version):
+                self.version = ver_check[0]
+                self.url = ver_check[1]
+                self.sha = ver_check[2]
 
     def _install_firmware_update(self, path):
         """Installs firmware update for specified device.
@@ -293,14 +296,13 @@ class QubesFwupdmgr:
         if choice == 99:
             exit(0)
         self._parse_parameters(self.updates_list, choice)
-        for i, url in enumerate(self.url):
-            self._download_firmware_updates(url, self.sha[i])
-            name = url.replace("https://fwupd.org/downloads/", "")
-            arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, name)
-            if self.name == "System Firmware":
-                path = arch_path.replace(".cab", "")
-                self._verify_dmi(path, self.version[i])
-            self._install_firmware_update(arch_path)
+        self._download_firmware_updates(self.url, self.sha)
+        name = self.url.replace("https://fwupd.org/downloads/", "")
+        arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, name)
+        if self.name == "System Firmware":
+            path = arch_path.replace(".cab", "")
+            self._verify_dmi(path, self.version)
+        self._install_firmware_update(arch_path)
 
     def _output_crawler(self, updev_dict, level):
         """Prints device and updates informations as a tree.

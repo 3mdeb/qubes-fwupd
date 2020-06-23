@@ -20,6 +20,7 @@ cp -R test/ /usr/share/fwupd-qubes/
 qvm-run --nogui -q -u root $UPDATEVM 'mkdir /usr/lib/qubes-fwupd' || exit 1
 
 # Create symlink
+rm /bin/qubes-fwupdmgr
 ln -s /usr/share/fwupd-qubes/src/qubes_fwupdmgr.py /bin/qubes-fwupdmgr
 
 # Copy script to updateVM
