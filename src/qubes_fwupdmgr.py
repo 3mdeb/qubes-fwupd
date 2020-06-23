@@ -18,7 +18,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 #
-import distutils.version as ver
 import json
 import os
 import re
@@ -26,6 +25,7 @@ import shutil
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
+from distutils.version import LooseVersion as l_ver
 
 FWUPD_QUBES_DIR = "/usr/share/fwupd-qubes"
 FWUPD_DOM0_UPDATE = os.path.join(FWUPD_QUBES_DIR, "src/fwupd-dom0-update")
@@ -93,6 +93,7 @@ class QubesFwupdmgr:
             stdout=subprocess.PIPE
         )
         self.output = p.communicate()[0].decode()
+        print(self.output)
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Refresh failed")
         if not METADATA_REFRESH_REGEX.match(self.output):
@@ -120,17 +121,18 @@ class QubesFwupdmgr:
         """
         self.updates_info_dict = json.loads(updates_info)
         self.updates_list = [
-            [
-                device["Name"],
-                device["Version"],
-                [
-                    [
-                        update["Version"],
-                        update["Uri"],
-                        update["Checksum"][0]
-                    ] for update in device["Releases"]
-                ]
-            ] for device in self.updates_info_dict["Devices"]
+            {
+                    "Name": device["Name"],
+                    "Version": device["Version"],
+                    "Releases": [
+                        {
+                            "Version": update["Version"],
+                            "Url": update["Uri"],
+                            "Checksum": update["Checksum"][0],
+                            "Description": update["Description"]
+                        } for update in device["Releases"]
+                    ]
+            } for device in self.updates_info_dict["Devices"]
         ]
 
     def _download_firmware_updates(self, url, sha):
@@ -158,64 +160,107 @@ class QubesFwupdmgr:
         if not os.path.exists(update_path):
             raise ValueError("Firmware update files do not exist")
 
-    def _user_input(self, updates_list):
+    def _user_input(self, updates_list, downgrade=False):
         """UI for update process.
 
         Keywords arguments:
         updates_list - list of updates for specified device
+        downgrade -- downgrade flag
         """
+        decorator = "======================================================"
         if len(updates_list) == 0:
             print("No updates available.")
             return 99
-
-        print("Available updates:")
-        print("======================================================")
+        if downgrade:
+            print("Available downgrades:")
+        else:
+            print("Available updates:")
+        print(decorator)
         for i, device in enumerate(updates_list):
             print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-            print("%s. Device: %s" % (i+1, device[0]))
-            print("   Current firmware version:\t %s" % device[1])
-            for i, update in enumerate(device[2]):
-                print("======================================================")
-                print("   Firmware update version:\t %s" % update[0])
-                print("   SHA1: %s" % update[2])
-            print("======================================================")
+            print("%s. Device: %s" % (i+1, device["Name"]))
+            print("   Current firmware version:\t %s" % device["Version"])
+            for update in device["Releases"]:
+                print(decorator)
+                print("   Firmware update version:\t %s" % update["Version"])
+                description = update["Description"].replace("<p>", "")
+                description = description.replace("<li>", "")
+                description = description.replace("<ul>", "")
+                description = description.replace("</ul>", "")
+                description = description.replace("</p>", "\n   ")
+                description = description.replace("</li>", "\n   ")
+                print("   Description: %s" % description)
+            print(decorator)
 
-        while(True):
+        while True:
             try:
-                print("If you want to abandon update press 'N'.")
+                print("If you want to abandon process press 'N'.")
                 choice = input(
-                    "If you want to update a device, choose the number: "
+                    "Otherwise choose a device number: "
                 )
                 if choice == 'N' or choice == 'n':
                     return 99
-                device_number = int(choice)
-                if 0 < device_number <= len(updates_list):
-                    return device_number-1
+                device_number = int(choice)-1
+                if 0 <= device_number < len(updates_list):
+                    if not downgrade:
+                        return device_number
+                    break
                 else:
                     raise ValueError()
             except ValueError:
                 print("Invalid choice.")
+
+        if downgrade:
+            while True:
+                try:
+                    releases = updates_list[device_number]["Releases"]
+                    for i, fw_dngd in enumerate(releases):
+                        print(decorator)
+                        print(
+                            "  %s. Firmware downgrade version:\t %s" %
+                            (i+1, fw_dngd["Version"])
+                        )
+                        description = fw_dngd["Description"].replace("<p>", "")
+                        description = description.replace("<li>", "")
+                        description = description.replace("<ul>", "")
+                        description = description.replace("</ul>", "")
+                        description = description.replace("</p>", "\n   ")
+                        description = description.replace("</li>", "\n   ")
+                        print("   Description: %s" % description)
+                    print("If you want to abandon downgrade process press N.")
+                    choice = input(
+                        "Otherwise choose downgrade number: "
+                    )
+                    if choice == 'N' or choice == 'n':
+                        return 99
+                    downgrade_number = int(choice)-1
+                    if 0 <= downgrade_number < len(releases):
+                        return device_number, downgrade_number
+                    else:
+                        raise ValueError()
+                except ValueError:
+                    print("Invalid choice.")
 
     def _parse_parameters(self, updates_list, choice):
         """Parses device name, url, version and SHA1 checksum of the file list.
 
         Keywords arguments:
         updates_list - list of updates for specified device
-        choice -- number of the device to be updated
+        choice -- number of device to be updated
         """
-        self.name = updates_list[choice][0]
-        self.version = updates_list[choice][2][0][0]
-        for ver_check in updates_list[choice][2]:
-            if ver.LooseVersion(ver_check[0]) >= ver.LooseVersion(self.version):
-                self.version = ver_check[0]
-                self.url = ver_check[1]
-                self.sha = ver_check[2]
+        self.name = updates_list[choice]["Name"]
+        self.version = updates_list[choice]["Releases"][0]["Version"]
+        for ver_check in updates_list[choice]["Releases"]:
+            if l_ver(ver_check["Version"]) >= l_ver(self.version):
+                self.version = ver_check["Version"]
+                self.url = ver_check["Url"]
+                self.sha = ver_check["Checksum"]
 
     def _install_firmware_update(self, path):
         """Installs firmware update for specified device.
 
         Keywords arguments:
-        path - absolute path to firmware update path
+        path - absolute path to firmware update archive
         """
         cmd_install = [
             "/bin/fwupdmgr",
@@ -244,7 +289,7 @@ class QubesFwupdmgr:
         """Verifies DMI tables for BIOS updates.
 
         Keywords arguments:
-        path -- updates file absolute path
+        path -- absolute path of the updates files
         version -- version of the update
         downgrade -- downgrade flag
         """
@@ -265,7 +310,7 @@ class QubesFwupdmgr:
             if 'Version: ' in line:
                 dmi_ver = line.split(': ')[1]
         if not downgrade:
-            if ver.LooseVersion(metainfo_ver) < ver.LooseVersion(dmi_ver):
+            if l_ver(metainfo_ver) < l_ver(dmi_ver):
                 raise ValueError(
                     "%s < %s Downgrade not allowed" %
                     (
@@ -297,12 +342,87 @@ class QubesFwupdmgr:
             exit(0)
         self._parse_parameters(self.updates_list, choice)
         self._download_firmware_updates(self.url, self.sha)
-        name = self.url.replace("https://fwupd.org/downloads/", "")
-        arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, name)
+        arch_name = self.url.replace("https://fwupd.org/downloads/", "")
+        arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, arch_name)
         if self.name == "System Firmware":
             path = arch_path.replace(".cab", "")
             self._verify_dmi(path, self.version)
         self._install_firmware_update(arch_path)
+
+    def _parse_downgrades(self, device_list):
+        """Parses informations about possible downgrades
+
+         Keywords argument:
+        device_list -- list of connected devices
+        """
+        self.downgrades = []
+        devices_info_dict = json.loads(device_list)
+        for device in devices_info_dict["Devices"]:
+            if "Releases" in device:
+                version = device["Version"]
+                self.downgrades.append(
+                    {
+                        "Name": device["Name"],
+                        "Version": device["Version"],
+                        "Releases": [
+                            {
+                                "Version": downgrade["Version"],
+                                "Description": downgrade["Description"],
+                                "Url": downgrade["Uri"],
+                                "Checksum": downgrade["Checksum"][0]
+                            } for downgrade in device["Releases"]
+                            if l_ver(downgrade["Version"]) < l_ver(version)
+                        ]
+                    }
+                )
+
+    def _install_firmware_downgrade(self, path):
+        """Installs firmware downgrade for specified device.
+
+        Keywords arguments:
+        path - absolute path to firmware downgrade archive
+        """
+        cmd_install = [
+            "/bin/fwupdmgr",
+            "--allow-older"
+            "install",
+            path
+        ]
+        p = subprocess.Popen(cmd_install)
+        p.wait()
+        if p.returncode != 0:
+            raise Exception("fwudp-qubes: Firmware downgrade failed")
+
+    def downgrade_firmware(self):
+        self._get_devices()
+        self._parse_downgrades(self.devices_info)
+        if self.downgrades:
+            device_choice, downgrade_choice = self._user_input(
+                self.downgrades,
+                downgrade=True
+            )
+            releases = self.downgrades[device_choice]["Releases"]
+            downgrade_url = releases[downgrade_choice]["Url"]
+            downgrade_sha = releases[downgrade_choice]["Checksum"]
+            self._download_firmware_updates(
+                downgrade_url,
+                downgrade_sha
+            )
+            arch_name = downgrade_url.replace(
+                "https://fwupd.org/downloads/",
+                ""
+            )
+            arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, arch_name)
+            if self.downgrades[device_choice]["Name"] == "System Firmware":
+                path = arch_path.replace(".cab", "")
+                self._verify_dmi(
+                    path,
+                    self.downgrades[device_choice]["Version"],
+                    downgrade=True
+                )
+            self._install_firmware_downgrade(arch_path)
+        else:
+            print("No downgrades avaible")
 
     def _output_crawler(self, updev_dict, level):
         """Prints device and updates informations as a tree.
