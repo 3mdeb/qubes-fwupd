@@ -52,7 +52,8 @@ HELP = {
             "get-devices": "Get all devices that support firmware updates",
             "get-updates": "Gets the list of updates for connected hardware",
             "refresh": "Refresh metadata from remote server",
-            "update": "Updates all firmware to latest versions available",
+            "update": "Updates chosen device to latest firmware version",
+            "downgrade": "Downgrade chosen device to chosen firmware version",
             "clean": "Deletes all cached update files"
         }
     ],
@@ -334,7 +335,7 @@ class QubesFwupdmgr:
             raise Exception("fwudp-qubes: Getting devices info failed")
 
     def update_firmware(self):
-        "Handles firmware update process."
+        """Handles firmware update process."""
         self._get_updates()
         self._parse_updates_info(self.updates_info)
         choice = self._user_input(self.updates_list)
@@ -394,6 +395,7 @@ class QubesFwupdmgr:
             raise Exception("fwudp-qubes: Firmware downgrade failed")
 
     def downgrade_firmware(self):
+        """Handles firmware downgrade process."""
         self._get_devices()
         self._parse_downgrades(self.devices_info)
         if self.downgrades:
@@ -488,6 +490,8 @@ def main():
         q.refresh_metadata()
     elif sys.argv[1] == "update":
         q.update_firmware()
+    elif sys.argv[1] == "downgrade":
+        q.downgrade_firmware()
     elif sys.argv[1] == "clean":
         q.clean_cache()
     else:
