@@ -4,7 +4,8 @@ Usage:
 	get-devices:		Get all devices that support firmware updates
 	get-updates:		Gets the list of updates for connected hardware
 	refresh:		Refresh metadata from remote server
-	update:			Updates all firmware to latest versions available
+	update:			Updates chosen device to latest firmware version
+	downgrade:		Downgrade chosen device to chosen firmware version
 	clean:			Deletes all cached update files
 Help:			
 	-h --help:		Show help options

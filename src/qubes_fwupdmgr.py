@@ -385,7 +385,7 @@ class QubesFwupdmgr:
         """
         cmd_install = [
             "/bin/fwupdmgr",
-            "--allow-older"
+            "--allow-older",
             "install",
             path
         ]
