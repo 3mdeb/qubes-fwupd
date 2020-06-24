@@ -407,15 +407,10 @@ class QubesFwupdmgr:
         self._get_devices()
         self._parse_downgrades(self.devices_info)
         if self.downgrades:
-            if (
-                self._user_input(self.downgrades, downgrade=True) ==
-                EXIT_CODES["NO_UPDATES"]
-               ):
+            ret_input = self._user_input(self.downgrades, downgrade=True)
+            if ret_input == EXIT_CODES["NO_UPDATES"]:
                 exit(EXIT_CODES["NO_UPDATES"])
-            device_choice, downgrade_choice = self._user_input(
-                self.downgrades,
-                downgrade=True
-            )
+            device_choice, downgrade_choice = ret_input
             releases = self.downgrades[device_choice]["Releases"]
             downgrade_url = releases[downgrade_choice]["Url"]
             downgrade_sha = releases[downgrade_choice]["Checksum"]

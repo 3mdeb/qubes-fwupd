@@ -233,14 +233,15 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     @unittest.skipUnless(device_connected(), "Required device not connected")
     def test_downgrade_firmware(self):
+        old_version = None
         self.q._get_devices()
         self.q._parse_downgrades(self.q.devices_info)
         for number, device in enumerate(self.q.downgrades):
             if device["Name"] == "ColorHug2":
                 old_version = device["Version"]
                 break
-            else:
-                self.fail("Test device not found")
+        if old_version is None:
+            self.fail("Test device not found")
         user_input = [str(number+1), '1']
         with patch('builtins.input', side_effect=user_input):
             self.q.downgrade_firmware()
@@ -297,26 +298,27 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     @unittest.skipUnless(device_connected(), "Required device not connected")
     def test_update_firmware(self):
+        old_version = None
+        new_version = None
         self.q._get_updates()
         self.q._parse_updates_info(self.q.updates_info)
         for number, device in enumerate(self.q.updates_list):
             if device["Name"] == "ColorHug2":
                 old_version = device["Version"]
                 break
-            else:
-                self.fail("Test device not found")
+        if old_version is None:
+            self.fail("Test device not found")
         user_input = [str(number+1)]
         with patch('builtins.input', side_effect=user_input):
             self.q.update_firmware()
-        self.q._get_updates()
-        self.q._parse_updates_info(self.q.updates_info)
+        self.q._get_devices()
         devices_info_dict = json.loads(self.q.devices_info)
         for device in devices_info_dict["Devices"]:
             if device["Name"] == "ColorHug2":
                 new_version = device["Version"]
                 break
-            else:
-                self.fail("Test device not found")
+        if new_version is None:
+            self.fail("Test device not found")
         self.assertTrue(
             ver.LooseVersion(old_version) < ver.LooseVersion(new_version)
         )
