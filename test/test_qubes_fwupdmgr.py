@@ -234,14 +234,19 @@ class TestQubesFwupdmgr(unittest.TestCase):
     @unittest.skipUnless(device_connected(), "Required device not connected")
     def test_downgrade_firmware(self):
         self.q._get_devices()
-        devices_info_dict = json.loads(self.q.devices_info)
-        old_version = devices_info_dict[0]["Version"]
-        user_input = ['1']
+        self.q._parse_downgrades(self.q.devices_info)
+        for number, device in enumerate(self.q.downgrades):
+            if device["Name"] == "ColorHug2":
+                old_version = device["Version"]
+                break
+            else:
+                self.fail("Test device not found")
+        user_input = [str(number+1), '1']
         with patch('builtins.input', side_effect=user_input):
-            self.q.downgrade_firmware
+            self.q.downgrade_firmware()
         self.q._get_devices()
-        devices_info_dict = json.loads(self.q.devices_info)
-        new_version = devices_info_dict[0]["Version"]
+        self.q._parse_downgrades(self.q.devices_info)
+        new_version = self.q.downgrades[number]["Version"]
         self.assertTrue(
             ver.LooseVersion(old_version) > ver.LooseVersion(new_version)
         )
@@ -279,6 +284,42 @@ class TestQubesFwupdmgr(unittest.TestCase):
             )
         self.assertEqual(device_choice, 0)
         self.assertEqual(downgrade_choice, 1)
+
+    def test_user_input_downgrade_N(self):
+        user_input = ['N']
+        with patch('builtins.input', side_effect=user_input):
+            self.q._parse_downgrades(GET_DEVICES)
+            N_choice = self.q._user_input(
+                self.q.downgrades,
+                downgrade=True
+            )
+        self.assertEqual(N_choice, 99)
+
+    @unittest.skipUnless(device_connected(), "Required device not connected")
+    def test_update_firmware(self):
+        self.q._get_updates()
+        self.q._parse_updates_info(self.q.updates_info)
+        for number, device in enumerate(self.q.updates_list):
+            if device["Name"] == "ColorHug2":
+                old_version = device["Version"]
+                break
+            else:
+                self.fail("Test device not found")
+        user_input = [str(number+1)]
+        with patch('builtins.input', side_effect=user_input):
+            self.q.update_firmware()
+        self.q._get_updates()
+        self.q._parse_updates_info(self.q.updates_info)
+        devices_info_dict = json.loads(self.q.devices_info)
+        for device in devices_info_dict["Devices"]:
+            if device["Name"] == "ColorHug2":
+                new_version = device["Version"]
+                break
+            else:
+                self.fail("Test device not found")
+        self.assertTrue(
+            ver.LooseVersion(old_version) < ver.LooseVersion(new_version)
+        )
 
 
 if __name__ == '__main__':

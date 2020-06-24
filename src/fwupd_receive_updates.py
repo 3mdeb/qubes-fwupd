@@ -144,7 +144,6 @@ class FwupdReceiveUpdates:
                     WARNING_COLOR
                 )
 
-
     def _extract_archive(self, archive_path, output_path):
         """Extracts archive file to the specified directory.
 

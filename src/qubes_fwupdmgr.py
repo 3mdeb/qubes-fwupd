@@ -343,7 +343,7 @@ class QubesFwupdmgr:
             raise Exception("fwudp-qubes: Getting devices info failed")
 
     def update_firmware(self):
-        """Handles firmware update process."""
+        """Updates firmware of the specified device."""
         self._get_updates()
         self._parse_updates_info(self.updates_info)
         choice = self._user_input(self.updates_list)
@@ -403,10 +403,15 @@ class QubesFwupdmgr:
             raise Exception("fwudp-qubes: Firmware downgrade failed")
 
     def downgrade_firmware(self):
-        """Handles firmware downgrade process."""
+        """Downgrades firmware of the specified device."""
         self._get_devices()
         self._parse_downgrades(self.devices_info)
         if self.downgrades:
+            if (
+                self._user_input(self.downgrades, downgrade=True) ==
+                EXIT_CODES["NO_UPDATES"]
+               ):
+                exit(EXIT_CODES["NO_UPDATES"])
             device_choice, downgrade_choice = self._user_input(
                 self.downgrades,
                 downgrade=True
