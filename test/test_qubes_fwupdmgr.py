@@ -97,8 +97,10 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab",
             "490be5c0b13ca4a3f169bf8bc682ba127b8f7b96"
         )
-        update_path = FWUPD_DOM0_UPDATES_DIR + \
+        update_path = path.join(
+            FWUPD_DOM0_UPDATES_DIR,
             "0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7"
+        )
         self.assertTrue(path.exists(update_path))
 
     def test_user_input_empty_list(self):
