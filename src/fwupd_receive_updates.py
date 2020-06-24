@@ -60,6 +60,7 @@ FWUPD_METADATA_FLAG_REGEX = re.compile(r"^metaflag")
 GPG_LVFS_REGEX = re.compile(
     r"gpg: Good signature from [a-z0-9\[\]\@\<\>\.\"\"]{1,128}"
 )
+WARNING_COLOR = '\033[93m'
 
 
 class FwupdReceiveUpdates:
@@ -67,10 +68,9 @@ class FwupdReceiveUpdates:
         """Compares computed SHA1 checksum with `sha` parameter.
 
         Keyword arguments:
-        file_path -- absolute path to file
+        file_path -- absolute path to the file
         sha -- SHA1 checksum of the file
         """
-        # Count sha1 checksum
         with open(file_path, 'rb') as f:
             c_sha = hashlib.sha1(f.read()).hexdigest()
         if c_sha != sha:
@@ -80,7 +80,6 @@ class FwupdReceiveUpdates:
             )
 
     def _check_domain(self, updatevm):
-        # Check if updateVM is allowed to provide update files
         """Checks if domain given as `updatevm` is allowed to send update
         files.
 
@@ -99,17 +98,16 @@ class FwupdReceiveUpdates:
             exit(1)
 
     def _verify_received(self, files_path, regex_pattern):
-        """Checks if sent files are expected.
+        """Checks if sent files match  regex filename pattern.
 
         Keyword arguments:
 
         files_path -- absolute path to inspected directory
         regex_pattern -- pattern of the expected files
         """
-        # Verify received files
         for untrusted_f in os.listdir(files_path):
             if not regex_pattern.match(untrusted_f):
-                raise TypeError(
+                raise Exception(
                     'Domain ' + self.source + ' sent unexpected file'
                 )
             f = untrusted_f
@@ -118,7 +116,7 @@ class FwupdReceiveUpdates:
             assert '\x1b' not in f
             path_f = path.join(files_path, f)
             if os.path.islink(path_f) or not os.path.isfile(path_f):
-                raise TypeError(
+                raise Exception(
                     'Domain ' + self.source + ' sent not regular file'
                 )
 
@@ -128,23 +126,31 @@ class FwupdReceiveUpdates:
         Keyword arguments:
         *args -- paths to be created
         """
-        # Create directories for update files
         qubes_gid = grp.getgrnam('qubes').gr_gid
         self.old_umask = os.umask(0o002)
         if args is None:
-            raise ValueError("Creating directories failed, no paths given.")
+            raise Exception("Creating directories failed, no paths given.")
         for file_path in args:
             if not path.exists(file_path):
                 os.mkdir(file_path)
                 os.chown(file_path, -1, qubes_gid)
                 os.chmod(file_path, 0o0775)
+            elif os.stat(file_path) != qubes_gid:
+                print(
+                    WARNING_COLOR +
+                    "Warning: You should move a personal files from %s. "
+                    % 'test.py' +
+                    "Cleaning cache will cause lose of the personal data!!" +
+                    WARNING_COLOR
+                )
+
 
     def _extract_archive(self, archive_path, output_path):
-        """Extracts archive file to specified directory.
+        """Extracts archive file to the specified directory.
 
         Keyword arguments:
         archive_path -- absolute path to archive file
-        output_path -- absolute output directory
+        output_path -- absolute path to the output directory
         """
         cmd_extract = [
             "cabextract",
@@ -162,7 +168,7 @@ class FwupdReceiveUpdates:
             )
 
     def _gpg_verification(self, file_path):
-        """Inspects GPG signature.
+        """Verifies GPG signature.
 
         Keyword argument:
         file_path -- absolute path to inspected file
@@ -188,12 +194,12 @@ class FwupdReceiveUpdates:
                 'Domain updateVM sent not signed firmware: ' + file_path
             )
 
-    def handle_fw_update(self, updatevm, shasum, filename):
-        """Handles copying firmware update archives from the updateVM.
+    def handle_fw_update(self, updatevm, sha, filename):
+        """Copies firmware update archives from the updateVM.
 
         Keyword arguments:
         updatevm -- update VM name
-        shasum -- SHA1 checksum of the firmware update archive
+        sha -- SHA1 checksum of the firmware update archive
         filename -- name of the firmware update archive
         """
         fwupd_firmware_file_regex = re.compile(filename)
@@ -220,7 +226,7 @@ class FwupdReceiveUpdates:
             FWUPD_DOM0_UNTRUSTED_DIR,
             fwupd_firmware_file_regex
         )
-        self._check_shasum(dom0_firmware_untrusted_path, shasum)
+        self._check_shasum(dom0_firmware_untrusted_path, sha)
         untrusted_dir_name = filename.replace(".cab", "")
         output_path = path.join(FWUPD_DOM0_UNTRUSTED_DIR, untrusted_dir_name)
         self._extract_archive(dom0_firmware_untrusted_path, output_path)
@@ -234,7 +240,7 @@ class FwupdReceiveUpdates:
         exit(0)
 
     def handle_metadata_update(self, updatevm):
-        """Handles copying metadata files from the updateVM.
+        """Copies metadata files from the updateVM.
 
         Keyword argument:
         updatevm -- update VM name
@@ -270,7 +276,7 @@ def main():
     if updatevm is None:
         exit(1)
     if sys.argv[2] is None:
-        raise ValueError("No flag mode has been set!!!")
+        raise Exception("No flag mode has been set!!!")
     elif sys.argv[2] == "metadata":
         fwupd.handle_metadata_update(updatevm)
     elif sys.argv[2] == "update":

@@ -40,6 +40,8 @@ FWUPD_DOM0_METADATA_FILE = os.path.join(
     FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz"
 )
+FWUPD_DOWNLOAD_PREFIX = "https://fwupd.org/downloads/"
+FWUPDMGR = "/bin/fwupdmgr"
 
 METADATA_REFRESH_REGEX = re.compile(
     r"^Successfully refreshed metadata manually$"
@@ -64,6 +66,12 @@ HELP = {
     ]
 }
 
+EXIT_CODES = {
+    "ERROR": 1,
+    "SUCCESS": 0,
+    "NO_UPDATES": 99,
+}
+
 
 class QubesFwupdmgr:
     def _download_metadata(self):
@@ -77,13 +85,13 @@ class QubesFwupdmgr:
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Metadata update failed")
         if not os.path.exists(FWUPD_DOM0_METADATA_FILE):
-            raise ValueError("Metadata signature does not exist")
+            raise Exception("Metadata signature does not exist")
 
     def refresh_metadata(self):
         """Updates metadata with downloaded files."""
         self._download_metadata()
         cmd_refresh = [
-            "/bin/fwupdmgr",
+            FWUPDMGR,
             "refresh",
             FWUPD_DOM0_METADATA_FILE,
             FWUPD_DOM0_METADATA_SIGNATURE,
@@ -98,7 +106,7 @@ class QubesFwupdmgr:
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Refresh failed")
         if not METADATA_REFRESH_REGEX.match(self.output):
-            raise ValueError("Metadata signature does not exist")
+            raise Exception("Metadata signature does not exist")
 
     def _get_updates(self):
         """Gathers infromations about available updates."""
@@ -140,10 +148,10 @@ class QubesFwupdmgr:
         """Initializes downloading firmware upadate archive.
 
         Keywords arguments:
-        url -- url path to firmware upadate archive
+        url -- url path to the firmware upadate archive
         sha -- SHA1 checksum of the firmware update archive
         """
-        name = url.replace("https://fwupd.org/downloads/", "")
+        name = url.replace(FWUPD_DOWNLOAD_PREFIX, "")
         update_path = os.path.join(
             FWUPD_DOM0_UPDATES_DIR,
             name.replace(".cab", "")
@@ -159,7 +167,7 @@ class QubesFwupdmgr:
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Firmware download failed")
         if not os.path.exists(update_path):
-            raise ValueError("Firmware update files do not exist")
+            raise Exception("Firmware update files do not exist")
 
     def _user_input(self, updates_list, downgrade=False):
         """UI for update process.
@@ -171,7 +179,7 @@ class QubesFwupdmgr:
         decorator = "======================================================"
         if len(updates_list) == 0:
             print("No updates available.")
-            return 99
+            return EXIT_CODES["NO_UPDATES"]
         if downgrade:
             print("Available downgrades:")
         else:
@@ -200,7 +208,7 @@ class QubesFwupdmgr:
                     "Otherwise choose a device number: "
                 )
                 if choice == 'N' or choice == 'n':
-                    return 99
+                    return EXIT_CODES["NO_UPDATES"]
                 device_number = int(choice)-1
                 if 0 <= device_number < len(updates_list):
                     if not downgrade:
@@ -233,7 +241,7 @@ class QubesFwupdmgr:
                         "Otherwise choose downgrade number: "
                     )
                     if choice == 'N' or choice == 'n':
-                        return 99
+                        return EXIT_CODES["NO_UPDATES"]
                     downgrade_number = int(choice)-1
                     if 0 <= downgrade_number < len(releases):
                         return device_number, downgrade_number
@@ -264,7 +272,7 @@ class QubesFwupdmgr:
         path - absolute path to firmware update archive
         """
         cmd_install = [
-            "/bin/fwupdmgr",
+            FWUPDMGR,
             "install",
             path
         ]
@@ -339,11 +347,11 @@ class QubesFwupdmgr:
         self._get_updates()
         self._parse_updates_info(self.updates_info)
         choice = self._user_input(self.updates_list)
-        if choice == 99:
-            exit(0)
+        if choice == EXIT_CODES["NO_UPDATES"]:
+            exit(EXIT_CODES["NO_UPDATES"])
         self._parse_parameters(self.updates_list, choice)
         self._download_firmware_updates(self.url, self.sha)
-        arch_name = self.url.replace("https://fwupd.org/downloads/", "")
+        arch_name = self.url.replace(FWUPD_DOWNLOAD_PREFIX, "")
         arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, arch_name)
         if self.name == "System Firmware":
             path = arch_path.replace(".cab", "")
@@ -384,7 +392,7 @@ class QubesFwupdmgr:
         path - absolute path to firmware downgrade archive
         """
         cmd_install = [
-            "/bin/fwupdmgr",
+            FWUPDMGR,
             "--allow-older",
             "install",
             path
@@ -411,7 +419,7 @@ class QubesFwupdmgr:
                 downgrade_sha
             )
             arch_name = downgrade_url.replace(
-                "https://fwupd.org/downloads/",
+                FWUPD_DOWNLOAD_PREFIX,
                 ""
             )
             arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, arch_name)
@@ -478,7 +486,7 @@ class QubesFwupdmgr:
 def main():
     if os.geteuid() != 0:
         print("You need to have root privileges to run this script.\n")
-        exit(1)
+        exit(EXIT_CODES["ERROR"])
     q = QubesFwupdmgr()
     if len(sys.argv) < 2:
         q.help()

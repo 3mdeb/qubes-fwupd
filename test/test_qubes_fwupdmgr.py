@@ -10,12 +10,18 @@ import platform
 from test.fwupd_logs import UPDATE_INFO, GET_DEVICES, DMI_DECODE
 from unittest.mock import patch
 
-FWUPD_DOM0_DIR = "/root/.cache/fwupd/"
-FWUPD_DOM0_METADATA_DIR = FWUPD_DOM0_DIR + "metadata/"
-FWUPD_DOM0_METADATA_SIGNATURE = FWUPD_DOM0_METADATA_DIR + "firmware.xml.gz.asc"
-FWUPD_DOM0_METADATA_FILE = FWUPD_DOM0_METADATA_DIR + "firmware.xml.gz"
-FWUPD_DOM0_UPDATES_DIR = FWUPD_DOM0_DIR + "updates/"
-FWUPD_DOM0_UNTRUSTED_DIR = FWUPD_DOM0_UPDATES_DIR + "untrusted/"
+FWUPD_DOM0_DIR = "/root/.cache/fwupd"
+FWUPD_DOM0_UPDATES_DIR = path.join(FWUPD_DOM0_DIR, "updates")
+FWUPD_DOM0_UNTRUSTED_DIR = path.join(FWUPD_DOM0_UPDATES_DIR, "untrusted")
+FWUPD_DOM0_METADATA_DIR = path.join(FWUPD_DOM0_DIR, "metadata")
+FWUPD_DOM0_METADATA_SIGNATURE = path.join(
+    FWUPD_DOM0_METADATA_DIR,
+    "firmware.xml.gz.asc"
+)
+FWUPD_DOM0_METADATA_FILE = path.join(
+    FWUPD_DOM0_METADATA_DIR,
+    "firmware.xml.gz"
+)
 
 
 def device_connected():

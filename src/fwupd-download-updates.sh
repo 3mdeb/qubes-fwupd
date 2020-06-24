@@ -1,6 +1,6 @@
 #!/bin/bash
 
-FWUPD_UPDATES_DIR=/home/user/.cache/fwupd
+FWUPD_UPDATEVM_DIR=/home/user/.cache/fwupd
 
 echo "Running fwupd download script..."
 
@@ -43,8 +43,8 @@ while [ -n "$1" ]; do
     shift
 done
 
-if [ ! -d $FWUPD_UPDATES_DIR ]; then
-    echo "fwupd updates dir does not exist: $FWUPD_UPDATES_DIR" >&2
+if [ ! -d $FWUPD_UPDATEVM_DIR ]; then
+    echo "fwupd updates dir does not exist: $FWUPD_UPDATEVM_DIR" >&2
     exit 1
 fi
 
@@ -54,19 +54,19 @@ fi
 
 if [ "$CLEAN" == "1" ]; then
     echo "Cleaning cache."
-    rm -rf $FWUPD_UPDATES_DIR/metadata/*
-    rm -rf $FWUPD_UPDATES_DIR/updates/*
+    rm -rf $FWUPD_UPDATEVM_DIR/metadata/*
+    rm -rf $FWUPD_UPDATEVM_DIR/updates/*
 fi
 
 if [ "$METADATA" == "1" ]; then
     echo "Downloading metadata."
-    rm -rf $FWUPD_UPDATES_DIR/metadata/*
-    wget -P $FWUPD_UPDATES_DIR/metadata \
+    rm -rf $FWUPD_UPDATEVM_DIR/metadata/*
+    wget -P $FWUPD_UPDATEVM_DIR/metadata \
         https://cdn.fwupd.org/downloads/firmware.xml.gz
-    wget -P $FWUPD_UPDATES_DIR/metadata \
+    wget -P $FWUPD_UPDATEVM_DIR/metadata \
         https://cdn.fwupd.org/downloads/firmware.xml.gz.asc
-    gpg --verify $FWUPD_UPDATES_DIR/metadata/firmware.xml.gz.asc \
-        $FWUPD_UPDATES_DIR/metadata/firmware.xml.gz
+    gpg --verify $FWUPD_UPDATEVM_DIR/metadata/firmware.xml.gz.asc \
+        $FWUPD_UPDATEVM_DIR/metadata/firmware.xml.gz
     if [ ! $? -eq 0 ]; then
         echo "Signature did NOT match. Exiting..."
         exit 1
@@ -74,13 +74,13 @@ if [ "$METADATA" == "1" ]; then
 fi
 
 if [ "$UPDATE" == "1" ]; then
-    echo "$SHASUM  $FWUPD_UPDATES_DIR/updates/$FW_NAME" \
-        > $FWUPD_UPDATES_DIR/updates/sha1-$FW_NAME
+    echo "$SHASUM  $FWUPD_UPDATEVM_DIR/updates/$FW_NAME" \
+        > $FWUPD_UPDATEVM_DIR/updates/sha1-$FW_NAME
     echo "Downloading firmware update $FW_NAME"
-    wget -P $FWUPD_UPDATES_DIR/updates $URL
-    sha1sum -c $FWUPD_UPDATES_DIR/updates/sha1-$FW_NAME
+    wget -P $FWUPD_UPDATEVM_DIR/updates $URL
+    sha1sum -c $FWUPD_UPDATEVM_DIR/updates/sha1-$FW_NAME
     if [ ! $? -eq 0 ]; then
-        rm -f $FWUPD_UPDATES_DIR/updates/*
+        rm -f $FWUPD_UPDATEVM_DIR/updates/*
         echo "Computed checksum did NOT match. Exiting..."
         exit 1
     fi

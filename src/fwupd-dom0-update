@@ -24,8 +24,8 @@ find_regex_in_args() {
 }
 
 UPDATEVM=`qubes-prefs --force-root updatevm`
-FWUPD_DOM0_CACHE_FILES=/root/.cache/fwupd
-FWUPD_UPDATEVM_CACHE_FILES=/home/user/.cache/fwupd
+FWUPD_DOM0_DIR=/root/.cache/fwupd
+FWUPD_UPDATEVM_DIR=/home/user/.cache/fwupd
 
 if [ -z "$UPDATEVM" ]; then
     echo "UpdateVM not set, exiting"
@@ -86,8 +86,8 @@ fi
 
 if [ -n "$CLEAN" ]; then
     echo "Cleaning directories."
-    rm -rf $FWUPD_DOM0_CACHE_FILES/metadata
-    rm -rf $FWUPD_DOM0_CACHE_FILES/updates
+    rm -rf $FWUPD_DOM0_DIR/metadata
+    rm -rf $FWUPD_DOM0_DIR/updates
 fi
 
 if [ "$UPDATE" == "1" ] && [[ -z "$URL" || -z "$SHASUM" ]]; then
@@ -101,23 +101,23 @@ if [[ -z "$UPDATE" && -z "$METADATA" ]]; then
 fi
 
 # Set ownership
-chown -R root:qubes $FWUPD_DOM0_CACHE_FILES
+chown -R root:qubes $FWUPD_DOM0_DIR
 
 echo "Using $UPDATEVM as UpdateVM to download fwupd updates for Dom0; this may take some time..." >&2
 
 # qvm-run by default auto-starts the VM if not running
-qvm-run --nogui -q -u root $UPDATEVM "mkdir -m 775 -p $FWUPD_UPDATEVM_CACHE_FILES/metadata" || exit 1
-qvm-run --nogui -q -u root $UPDATEVM "mkdir -m 775 -p $FWUPD_UPDATEVM_CACHE_FILES/updates" || exit 1
-qvm-run --nogui -q -u root $UPDATEVM "chown -R user:user $FWUPD_UPDATEVM_CACHE_FILES" || exit 1
+qvm-run --nogui -q -u root $UPDATEVM "mkdir -m 775 -p $FWUPD_UPDATEVM_DIR/metadata" || exit 1
+qvm-run --nogui -q -u root $UPDATEVM "mkdir -m 775 -p $FWUPD_UPDATEVM_DIR/updates" || exit 1
+qvm-run --nogui -q -u root $UPDATEVM "chown -R user:user $FWUPD_UPDATEVM_DIR" || exit 1
 
 # Setup fwupd-download-updates commandline
 FW_UPDATE_SCRIPT="/usr/lib/qubes-fwupd/fwupd-download-updates.sh"
 if [ "$METADATA" == 1 ]; then
-    rm -rf $FWUPD_DOM0_CACHE_FILES/metadata
+    rm -rf $FWUPD_DOM0_DIR/metadata
     FW_UPDATE_SCRIPT_ARGS="--metadata"
     FW_RECIVE_ARGS="metadata"
 elif [ "$UPDATE" == 1 ]; then
-    FW_DIR=$FWUPD_DOM0_CACHE_FILES/updates/$FW_NAME
+    FW_DIR=$FWUPD_DOM0_DIR/updates/$FW_NAME
     if [ -d "${FW_DIR::-4}" ]; then
         echo "Firmware already downloaded. Using cached files." >&2
         exit 0
@@ -144,8 +144,8 @@ fi
 
 if [ "$?" -ne 0 ]; then
     echo "*** ERROR while receiving fwupd updates"
-    rm -rf $FWUPD_DOM0_CACHE_FILES/metadata
-    rm -rf $FWUPD_DOM0_CACHE_FILES/updates
+    rm -rf $FWUPD_DOM0_DIR/metadata
+    rm -rf $FWUPD_DOM0_DIR/updates
     exit 1
 fi
 
