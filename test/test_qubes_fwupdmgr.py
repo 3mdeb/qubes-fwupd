@@ -13,6 +13,7 @@ from unittest.mock import patch
 FWUPD_DOM0_DIR = "/root/.cache/fwupd"
 FWUPD_DOM0_UPDATES_DIR = path.join(FWUPD_DOM0_DIR, "updates")
 FWUPD_DOM0_UNTRUSTED_DIR = path.join(FWUPD_DOM0_UPDATES_DIR, "untrusted")
+FWUPD_DOM0_USBVM_LOG = path.join(FWUPD_DOM0_DIR, "usbvm-devices.log")
 FWUPD_DOM0_METADATA_DIR = path.join(FWUPD_DOM0_DIR, "metadata")
 FWUPD_DOM0_METADATA_SIGNATURE = path.join(
     FWUPD_DOM0_METADATA_DIR,
@@ -28,8 +29,8 @@ def device_connected():
     if 'qubes' not in platform.release():
         return False
     q = qfwupd.QubesFwupdmgr()
-    q._get_devices()
-    return "ColorHug2" in q.devices_info
+    q._get_dom0_devices()
+    return "ColorHug2" in q.dom0_devices_info
 
 
 class TestQubesFwupdmgr(unittest.TestCase):
@@ -61,8 +62,8 @@ class TestQubesFwupdmgr(unittest.TestCase):
         )
 
     @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
-    def test_get_updates(self):
-        self.q._get_updates()
+    def test_get_dom0_updates(self):
+        self.q._get_dom0_updates()
         self.assertTrue(
             "Devices" in self.q.updates_info,
             msg="Getting available updates failed"
@@ -160,12 +161,12 @@ class TestQubesFwupdmgr(unittest.TestCase):
         sys.stdout = self.captured_output
 
     @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
-    def test_get_devices(self):
-        self.q._get_devices()
-        self.assertIsNotNone(self.q.devices_info)
+    def test_get_dom0_devices(self):
+        self.q._get_dom0_devices()
+        self.assertIsNotNone(self.q.dom0_devices_info)
 
     @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
-    def test_get_devices_qubes(self):
+    def test_get_dom0_devices_qubes(self):
         get_devices_output = io.StringIO()
         sys.stdout = get_devices_output
         self.q.get_devices_qubes()
@@ -173,7 +174,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         sys.stdout = self.captured_output
 
     @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
-    def test_get_updates_qubes(self):
+    def test_get_dom0_updates_qubes(self):
         get_devices_output = io.StringIO()
         sys.stdout = get_devices_output
         self.q.get_devices_qubes()
@@ -234,8 +235,8 @@ class TestQubesFwupdmgr(unittest.TestCase):
     @unittest.skipUnless(device_connected(), "Required device not connected")
     def test_downgrade_firmware(self):
         old_version = None
-        self.q._get_devices()
-        self.q._parse_downgrades(self.q.devices_info)
+        self.q._get_dom0_devices()
+        self.q._parse_downgrades(self.q.dom0_devices_info)
         for number, device in enumerate(self.q.downgrades):
             if device["Name"] == "ColorHug2":
                 old_version = device["Version"]
@@ -245,8 +246,8 @@ class TestQubesFwupdmgr(unittest.TestCase):
         user_input = [str(number+1), '1']
         with patch('builtins.input', side_effect=user_input):
             self.q.downgrade_firmware()
-        self.q._get_devices()
-        self.q._parse_downgrades(self.q.devices_info)
+        self.q._get_dom0_devices()
+        self.q._parse_downgrades(self.q.dom0_devices_info)
         new_version = self.q.downgrades[number]["Version"]
         self.assertTrue(
             ver.LooseVersion(old_version) > ver.LooseVersion(new_version)
@@ -300,7 +301,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_update_firmware(self):
         old_version = None
         new_version = None
-        self.q._get_updates()
+        self.q._get_dom0_updates()
         self.q._parse_updates_info(self.q.updates_info)
         for number, device in enumerate(self.q.updates_list):
             if device["Name"] == "ColorHug2":
@@ -311,9 +312,9 @@ class TestQubesFwupdmgr(unittest.TestCase):
         user_input = [str(number+1)]
         with patch('builtins.input', side_effect=user_input):
             self.q.update_firmware()
-        self.q._get_devices()
-        devices_info_dict = json.loads(self.q.devices_info)
-        for device in devices_info_dict["Devices"]:
+        self.q._get_dom0_devices()
+        dom0_devices_info_dict = json.loads(self.q.dom0_devices_info)
+        for device in dom0_devices_info_dict["Devices"]:
             if device["Name"] == "ColorHug2":
                 new_version = device["Version"]
                 break
@@ -322,6 +323,11 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.assertTrue(
             ver.LooseVersion(old_version) < ver.LooseVersion(new_version)
         )
+
+    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    def test_get_usbvm_devices(self):
+        self.q._get_usbvm_devices()
+        self.assertTrue(path.exists(FWUPD_DOM0_USBVM_LOG))
 
 
 if __name__ == '__main__':

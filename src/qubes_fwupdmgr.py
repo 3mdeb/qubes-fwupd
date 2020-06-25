@@ -32,6 +32,7 @@ FWUPD_DOM0_UPDATE = os.path.join(FWUPD_QUBES_DIR, "src/fwupd-dom0-update")
 FWUPD_DOM0_DIR = "/root/.cache/fwupd"
 FWUPD_DOM0_METADATA_DIR = os.path.join(FWUPD_DOM0_DIR, "metadata")
 FWUPD_DOM0_UPDATES_DIR = os.path.join(FWUPD_DOM0_DIR, "updates")
+FWUPD_DOM0_USBVM_LOG = os.path.join(FWUPD_DOM0_DIR, "usbvm-devices.log")
 FWUPD_DOM0_METADATA_SIGNATURE = os.path.join(
     FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz.asc"
@@ -108,14 +109,14 @@ class QubesFwupdmgr:
         if not METADATA_REFRESH_REGEX.match(self.output):
             raise Exception("Metadata signature does not exist")
 
-    def _get_updates(self):
+    def _get_dom0_updates(self):
         """Gathers infromations about available updates."""
-        cmd_get_updates = [
+        cmd_get_dom0_updates = [
             "/bin/fwupdagent",
             "get-updates"
         ]
         p = subprocess.Popen(
-            cmd_get_updates,
+            cmd_get_dom0_updates,
             stdout=subprocess.PIPE
         )
         self.updates_info = p.communicate()[0].decode()
@@ -328,23 +329,40 @@ class QubesFwupdmgr:
                     )
                 )
 
-    def _get_devices(self):
-        """Gathers infromations about connected devices."""
-        cmd_get_devices = [
+    def _get_dom0_devices(self):
+        """Gathers informations about devices connected in dom0."""
+        cmd_get_dom0_devices = [
             "/bin/fwupdagent",
             "get-devices"
         ]
         p = subprocess.Popen(
-            cmd_get_devices,
+            cmd_get_dom0_devices,
             stdout=subprocess.PIPE
         )
-        self.devices_info = p.communicate()[0].decode()
+        self.dom0_devices_info = p.communicate()[0].decode()
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Getting devices info failed")
 
+    def _get_usbvm_devices(self):
+        """Gathers informations about devices connected in sys-usb."""
+        usbvm_cmd = '"/usr/libexec/fwupd/fwupdagent "'
+        cmd_get_usbvm_devices = 'qvm-run --nogui --pass-io sys-usb %s > %s' % (
+            usbvm_cmd,
+            FWUPD_DOM0_USBVM_LOG
+        )
+        p = subprocess.Popen(
+            cmd_get_usbvm_devices,
+            shell=True
+        )
+        p.wait()
+        if p.returncode != 0:
+            raise Exception("fwudp-qubes: Getting sys-usb devices info failed")
+        if os.path.exists(FWUPD_DOM0_USBVM_LOG):
+            raise Exception("sys-usb device info log does not exist")
+
     def update_firmware(self):
         """Updates firmware of the specified device."""
-        self._get_updates()
+        self._get_dom0_updates()
         self._parse_updates_info(self.updates_info)
         choice = self._user_input(self.updates_list)
         if choice == EXIT_CODES["NO_UPDATES"]:
@@ -365,8 +383,8 @@ class QubesFwupdmgr:
         device_list -- list of connected devices
         """
         self.downgrades = []
-        devices_info_dict = json.loads(device_list)
-        for device in devices_info_dict["Devices"]:
+        dom0_devices_info_dict = json.loads(device_list)
+        for device in dom0_devices_info_dict["Devices"]:
             if "Releases" in device:
                 version = device["Version"]
                 self.downgrades.append(
@@ -404,8 +422,8 @@ class QubesFwupdmgr:
 
     def downgrade_firmware(self):
         """Downgrades firmware of the specified device."""
-        self._get_devices()
-        self._parse_downgrades(self.devices_info)
+        self._get_dom0_devices()
+        self._parse_downgrades(self.dom0_devices_info)
         if self.downgrades:
             ret_input = self._user_input(self.downgrades, downgrade=True)
             if ret_input == EXIT_CODES["NO_UPDATES"]:
@@ -460,13 +478,17 @@ class QubesFwupdmgr:
 
     def get_devices_qubes(self):
         """Gathers and prints devices information."""
-        self._get_devices()
-        devices_info_dict = json.loads(self.devices_info)
-        self._output_crawler(devices_info_dict, 0)
+        self._get_dom0_devices()
+        self._get_usbvm_devices()
+        with open(FWUPD_DOM0_USBVM_LOG) as usbvm_device_info:
+            usbvm_device_info_dict = json.loads(usbvm_device_info.read())
+        dom0_devices_info_dict = json.loads(self.dom0_devices_info)
+        self._output_crawler(dom0_devices_info_dict, 0)
+        self._output_crawler(usbvm_device_info_dict, 0)
 
     def get_updates_qubes(self):
         """Gathers and prints updates information."""
-        self._get_updates()
+        self._get_dom0_updates()
         self._parse_updates_info(self.updates_info)
         self._output_crawler(self.updates_info_dict, 0)
 
