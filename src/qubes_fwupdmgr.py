@@ -515,15 +515,15 @@ class QubesFwupdmgr:
         adminVM -- dom0 flag
         """
         decorator = "======================================================"
+        if adminVM:
+            print("Dom0 updates:")
+        else:
+            print("sys-usb updates:")
+        print(decorator)
         if len(updates_list) == 0:
             print("No updates available.")
             return EXIT_CODES["NO_UPDATES"]
         else:
-            if adminVM:
-                print("Dom0 updates:")
-            else:
-                print("sys-usb updates:")
-            print(decorator)
             print("Available updates:")
             print(decorator)
             for i, device in enumerate(updates_list):
@@ -565,7 +565,8 @@ class QubesFwupdmgr:
             usbvm_device_info_dict = json.loads(usbvm_device_info.read())
         self._parse_usbvm_updates(usbvm_device_info_dict)
         self._parse_dom0_updates_info(self.dom0_updates_info)
-        self._output_crawler(self.dom0_updates_info_dict, 0)
+        self._updates_crawler(self.dom0_updates_list)
+        self._updates_crawler(self.usbvm_updates_list, adminVM=False)
 
     def clean_cache(self):
         """Removes updates data"""
