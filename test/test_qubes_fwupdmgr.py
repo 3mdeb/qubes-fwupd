@@ -173,12 +173,12 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.assertNotEqual(get_devices_output.getvalue().strip(), "")
         sys.stdout = self.captured_output
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    @unittest.skipUnless(device_connected(), "Required device not connected")
     def test_get_dom0_updates_qubes(self):
-        get_devices_output = io.StringIO()
-        sys.stdout = get_devices_output
-        self.q.get_devices_qubes()
-        self.assertNotEqual(get_devices_output.getvalue().strip(), "")
+        get_updates_output = io.StringIO()
+        sys.stdout = get_updates_output
+        self.q.get_updates_qubes()
+        self.assertNotEqual(get_updates_output.getvalue().strip(), "")
         sys.stdout = self.captured_output
 
     def test_help(self):

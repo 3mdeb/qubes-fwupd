@@ -345,7 +345,7 @@ class QubesFwupdmgr:
 
     def _get_usbvm_devices(self):
         """Gathers informations about devices connected in sys-usb."""
-        usbvm_cmd = '"/usr/libexec/fwupd/fwupdagent "'
+        usbvm_cmd = '"/usr/libexec/fwupd/fwupdagent get-devices"'
         cmd_get_usbvm_devices = 'qvm-run --nogui --pass-io sys-usb %s > %s' % (
             usbvm_cmd,
             FWUPD_DOM0_USBVM_LOG
@@ -357,7 +357,7 @@ class QubesFwupdmgr:
         p.wait()
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Getting sys-usb devices info failed")
-        if os.path.exists(FWUPD_DOM0_USBVM_LOG):
+        if not os.path.exists(FWUPD_DOM0_USBVM_LOG):
             raise Exception("sys-usb device info log does not exist")
 
     def update_firmware(self):
