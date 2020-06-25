@@ -115,7 +115,7 @@ GET_DEVICES = """{
             ],
             "Vendor" : "Hughski Ltd.",
             "VendorId" : "USB:0x273F",
-            "Version" : "2.0.7",
+            "Version" : "2.0.6",
             "VersionFormat" : "triplet",
             "Icons" : [
                 "colorimeter-colorhug"

@@ -32,7 +32,7 @@ FWUPD_DOM0_UPDATE = os.path.join(FWUPD_QUBES_DIR, "src/fwupd-dom0-update")
 FWUPD_DOM0_DIR = "/root/.cache/fwupd"
 FWUPD_DOM0_METADATA_DIR = os.path.join(FWUPD_DOM0_DIR, "metadata")
 FWUPD_DOM0_UPDATES_DIR = os.path.join(FWUPD_DOM0_DIR, "updates")
-FWUPD_DOM0_USBVM_LOG = os.path.join(FWUPD_DOM0_DIR, "usbvm-devices.log")
+FWUPD_USBVM_LOG = os.path.join(FWUPD_DOM0_DIR, "usbvm-devices.log")
 FWUPD_DOM0_METADATA_SIGNATURE = os.path.join(
     FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz.asc"
@@ -119,18 +119,18 @@ class QubesFwupdmgr:
             cmd_get_dom0_updates,
             stdout=subprocess.PIPE
         )
-        self.updates_info = p.communicate()[0].decode()
+        self.dom0_updates_info = p.communicate()[0].decode()
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Getting available updates failed")
 
-    def _parse_updates_info(self, updates_info):
+    def _parse_dom0_updates_info(self, updates_info):
         """Creates dictionary and list with informations about updates.
 
         Keywords argument:
         updates_info - gathered update informations
         """
-        self.updates_info_dict = json.loads(updates_info)
-        self.updates_list = [
+        self.dom0_updates_info_dict = json.loads(updates_info)
+        self.dom0_updates_list = [
             {
                     "Name": device["Name"],
                     "Version": device["Version"],
@@ -142,7 +142,7 @@ class QubesFwupdmgr:
                             "Description": update["Description"]
                         } for update in device["Releases"]
                     ]
-            } for device in self.updates_info_dict["Devices"]
+            } for device in self.dom0_updates_info_dict["Devices"]
         ]
 
     def _download_firmware_updates(self, url, sha):
@@ -345,10 +345,12 @@ class QubesFwupdmgr:
 
     def _get_usbvm_devices(self):
         """Gathers informations about devices connected in sys-usb."""
+        if os.path.exists(FWUPD_USBVM_LOG):
+            os.remove(FWUPD_USBVM_LOG)
         usbvm_cmd = '"/usr/libexec/fwupd/fwupdagent get-devices"'
         cmd_get_usbvm_devices = 'qvm-run --nogui --pass-io sys-usb %s > %s' % (
             usbvm_cmd,
-            FWUPD_DOM0_USBVM_LOG
+            FWUPD_USBVM_LOG
         )
         p = subprocess.Popen(
             cmd_get_usbvm_devices,
@@ -357,17 +359,46 @@ class QubesFwupdmgr:
         p.wait()
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Getting sys-usb devices info failed")
-        if not os.path.exists(FWUPD_DOM0_USBVM_LOG):
+        if not os.path.exists(FWUPD_USBVM_LOG):
             raise Exception("sys-usb device info log does not exist")
+
+    def _parse_usbvm_updates(self, usbvm_devices_info):
+        """Creates dictionary and list with informations about updates.
+
+        Keywords argument:
+        usbvm_devices_info - gathered usbvm informations
+        """
+        self.usbvm_updates_list = []
+        usbvm_device_info_dict = json.loads(usbvm_devices_info)
+        for device in usbvm_device_info_dict["Devices"]:
+            if "Releases" in device:
+                self.usbvm_updates_list.append(
+                    {
+                        "Name": device["Name"],
+                        "Version": device["Version"],
+                        "Releases": []
+                    }
+                )
+                current_version = device["Version"]
+                for update in device["Releases"]:
+                    if l_ver(update["Version"]) > current_version:
+                        self.usbvm_updates_list[-1]["Releases"].append(
+                            {
+                                "Version": update["Version"],
+                                "Url": update["Uri"],
+                                "Checksum": update["Checksum"][0],
+                                "Description": update["Description"]
+                            }
+                        )
 
     def update_firmware(self):
         """Updates firmware of the specified device."""
         self._get_dom0_updates()
-        self._parse_updates_info(self.updates_info)
-        choice = self._user_input(self.updates_list)
+        self._parse_dom0_updates_info(self.dom0_updates_info)
+        choice = self._user_input(self.dom0_updates_list)
         if choice == EXIT_CODES["NO_UPDATES"]:
             exit(EXIT_CODES["NO_UPDATES"])
-        self._parse_parameters(self.updates_list, choice)
+        self._parse_parameters(self.dom0_updates_list, choice)
         self._download_firmware_updates(self.url, self.sha)
         arch_name = self.url.replace(FWUPD_DOWNLOAD_PREFIX, "")
         arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, arch_name)
@@ -376,7 +407,7 @@ class QubesFwupdmgr:
             self._verify_dmi(path, self.version)
         self._install_firmware_update(arch_path)
 
-    def _parse_downgrades(self, device_list):
+    def _parse_dom0_downgrades(self, device_list):
         """Parses informations about possible downgrades
 
          Keywords argument:
@@ -423,7 +454,7 @@ class QubesFwupdmgr:
     def downgrade_firmware(self):
         """Downgrades firmware of the specified device."""
         self._get_dom0_devices()
-        self._parse_downgrades(self.dom0_devices_info)
+        self._parse_dom0_downgrades(self.dom0_devices_info)
         if self.downgrades:
             ret_input = self._user_input(self.downgrades, downgrade=True)
             if ret_input == EXIT_CODES["NO_UPDATES"]:
@@ -476,11 +507,51 @@ class QubesFwupdmgr:
                 for nested_dict in updev_dict[updev_key]:
                     self._output_crawler(nested_dict, level+1)
 
+    def _updates_crawler(self, updates_list, adminVM=True):
+        """Prints updates informations for dom0 and sys-usb
+
+        Keywords arguments:
+        updates_list -- list of devices updates
+        adminVM -- dom0 flag
+        """
+        decorator = "======================================================"
+        if len(updates_list) == 0:
+            print("No updates available.")
+            return EXIT_CODES["NO_UPDATES"]
+        else:
+            if adminVM:
+                print("Dom0 updates:")
+            else:
+                print("sys-usb updates:")
+            print(decorator)
+            print("Available updates:")
+            print(decorator)
+            for i, device in enumerate(updates_list):
+                print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+                print("%s. Device: %s" % (i+1, device["Name"]))
+                print("   Current firmware version:\t %s" % device["Version"])
+                for update in device["Releases"]:
+                    print(decorator)
+                    print(
+                        "   Firmware update "
+                        "version:\t %s" % update["Version"]
+                    )
+                    print("   URL:\t %s" % update["Url"])
+                    print("   SHA1 checksum:\t %s" % update["Checksum"])
+                    description = update["Description"].replace("<p>", "")
+                    description = description.replace("<li>", "")
+                    description = description.replace("<ul>", "")
+                    description = description.replace("</ul>", "")
+                    description = description.replace("</p>", "\n   ")
+                    description = description.replace("</li>", "\n   ")
+                    print("   Description: %s" % description)
+                print(decorator)
+
     def get_devices_qubes(self):
         """Gathers and prints devices information."""
         self._get_dom0_devices()
         self._get_usbvm_devices()
-        with open(FWUPD_DOM0_USBVM_LOG) as usbvm_device_info:
+        with open(FWUPD_USBVM_LOG) as usbvm_device_info:
             usbvm_device_info_dict = json.loads(usbvm_device_info.read())
         dom0_devices_info_dict = json.loads(self.dom0_devices_info)
         self._output_crawler(dom0_devices_info_dict, 0)
@@ -489,8 +560,12 @@ class QubesFwupdmgr:
     def get_updates_qubes(self):
         """Gathers and prints updates information."""
         self._get_dom0_updates()
-        self._parse_updates_info(self.updates_info)
-        self._output_crawler(self.updates_info_dict, 0)
+        self._get_usbvm_devices()
+        with open(FWUPD_USBVM_LOG) as usbvm_device_info:
+            usbvm_device_info_dict = json.loads(usbvm_device_info.read())
+        self._parse_usbvm_updates(usbvm_device_info_dict)
+        self._parse_dom0_updates_info(self.dom0_updates_info)
+        self._output_crawler(self.dom0_updates_info_dict, 0)
 
     def clean_cache(self):
         """Removes updates data"""

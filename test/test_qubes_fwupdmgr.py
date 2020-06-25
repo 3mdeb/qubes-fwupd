@@ -13,7 +13,7 @@ from unittest.mock import patch
 FWUPD_DOM0_DIR = "/root/.cache/fwupd"
 FWUPD_DOM0_UPDATES_DIR = path.join(FWUPD_DOM0_DIR, "updates")
 FWUPD_DOM0_UNTRUSTED_DIR = path.join(FWUPD_DOM0_UPDATES_DIR, "untrusted")
-FWUPD_DOM0_USBVM_LOG = path.join(FWUPD_DOM0_DIR, "usbvm-devices.log")
+FWUPD_USBVM_LOG = path.join(FWUPD_DOM0_DIR, "usbvm-devices.log")
 FWUPD_DOM0_METADATA_DIR = path.join(FWUPD_DOM0_DIR, "metadata")
 FWUPD_DOM0_METADATA_SIGNATURE = path.join(
     FWUPD_DOM0_METADATA_DIR,
@@ -65,29 +65,29 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_get_dom0_updates(self):
         self.q._get_dom0_updates()
         self.assertTrue(
-            "Devices" in self.q.updates_info,
+            "Devices" in self.q.dom0_updates_info,
             msg="Getting available updates failed"
         )
 
     def test_parse_updates_info(self):
-        self.q._parse_updates_info(UPDATE_INFO)
+        self.q._parse_dom0_updates_info(UPDATE_INFO)
         self.assertEqual(
-            self.q.updates_list[0]["Name"],
+            self.q.dom0_updates_list[0]["Name"],
             "ColorHug2",
             msg="Wrong device name"
         )
         self.assertEqual(
-            self.q.updates_list[0]["Version"],
+            self.q.dom0_updates_list[0]["Version"],
             "2.0.6",
             msg="Wrong update version"
         )
         self.assertEqual(
-            self.q.updates_list[0]["Releases"][0]["Url"],
+            self.q.dom0_updates_list[0]["Releases"][0]["Url"],
             "https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab",
             msg="Wrong update URL"
         )
         self.assertEqual(
-            self.q.updates_list[0]["Releases"][0]["Checksum"],
+            self.q.dom0_updates_list[0]["Releases"][0]["Checksum"],
             "490be5c0b13ca4a3f169bf8bc682ba127b8f7b96",
             msg="Wrong checksum"
         )
@@ -111,25 +111,25 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_user_input_n(self):
         user_input = ['sth', 'n']
         with patch('builtins.input', side_effect=user_input):
-            self.q._parse_updates_info(UPDATE_INFO)
-            choice = self.q._user_input(self.q.updates_list)
+            self.q._parse_dom0_updates_info(UPDATE_INFO)
+            choice = self.q._user_input(self.q.dom0_updates_list)
         self.assertEqual(choice, 99)
         user_input = ['sth', 'N']
         with patch('builtins.input', side_effect=user_input):
-            self.q._parse_updates_info(UPDATE_INFO)
-            choice = self.q._user_input(self.q.updates_list)
+            self.q._parse_dom0_updates_info(UPDATE_INFO)
+            choice = self.q._user_input(self.q.dom0_updates_list)
         self.assertEqual(choice, 99)
 
     def test_user_input_choice(self):
         user_input = ['6', '1']
         with patch('builtins.input', side_effect=user_input):
-            self.q._parse_updates_info(UPDATE_INFO)
-            choice = self.q._user_input(self.q.updates_list)
+            self.q._parse_dom0_updates_info(UPDATE_INFO)
+            choice = self.q._user_input(self.q.dom0_updates_list)
         self.assertEqual(choice, 0)
 
     def test_parse_parameters(self):
-        self.q._parse_updates_info(UPDATE_INFO)
-        self.q._parse_parameters(self.q.updates_list, 0)
+        self.q._parse_dom0_updates_info(UPDATE_INFO)
+        self.q._parse_parameters(self.q.dom0_updates_list, 0)
         self.assertEqual(
             self.q.url,
             "https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab"
@@ -166,7 +166,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.assertIsNotNone(self.q.dom0_devices_info)
 
     @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
-    def test_get_dom0_devices_qubes(self):
+    def test_get_devices_qubes(self):
         get_devices_output = io.StringIO()
         sys.stdout = get_devices_output
         self.q.get_devices_qubes()
@@ -174,7 +174,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         sys.stdout = self.captured_output
 
     @unittest.skipUnless(device_connected(), "Required device not connected")
-    def test_get_dom0_updates_qubes(self):
+    def test_get_updates_qubes(self):
         get_updates_output = io.StringIO()
         sys.stdout = get_updates_output
         self.q.get_updates_qubes()
@@ -236,7 +236,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_downgrade_firmware(self):
         old_version = None
         self.q._get_dom0_devices()
-        self.q._parse_downgrades(self.q.dom0_devices_info)
+        self.q._parse_dom0_downgrades(self.q.dom0_devices_info)
         for number, device in enumerate(self.q.downgrades):
             if device["Name"] == "ColorHug2":
                 old_version = device["Version"]
@@ -247,39 +247,39 @@ class TestQubesFwupdmgr(unittest.TestCase):
         with patch('builtins.input', side_effect=user_input):
             self.q.downgrade_firmware()
         self.q._get_dom0_devices()
-        self.q._parse_downgrades(self.q.dom0_devices_info)
+        self.q._parse_dom0_downgrades(self.q.dom0_devices_info)
         new_version = self.q.downgrades[number]["Version"]
         self.assertTrue(
             ver.LooseVersion(old_version) > ver.LooseVersion(new_version)
         )
 
     def test_parse_downgrades(self):
-        self.q._parse_downgrades(GET_DEVICES)
+        self.q._parse_dom0_downgrades(GET_DEVICES)
         self.assertEqual(
             self.q.downgrades[0]["Name"],
             "ColorHug2"
         )
         self.assertEqual(
             self.q.downgrades[0]["Version"],
-            "2.0.7"
-        )
-        self.assertEqual(
-            self.q.downgrades[0]["Releases"][0]["Version"],
             "2.0.6"
         )
         self.assertEqual(
+            self.q.downgrades[0]["Releases"][0]["Version"],
+            "2.0.5"
+        )
+        self.assertEqual(
             self.q.downgrades[0]["Releases"][0]["Url"],
-            "https://fwupd.org/downloads/170f2c19f17b7819644d3fcc7617621cc3350a04-hughski-colorhug2-2.0.6.cab"
+            "https://fwupd.org/downloads/f7dd4ab29fa610438571b8b62b26b0b0e57bb35b-hughski-colorhug2-2.0.5.cab"
         )
         self.assertEqual(
             self.q.downgrades[0]["Releases"][0]["Checksum"],
-            "03c9c14db1894a00035ececcfae192865a710e52"
+            "4ee9dfa38df3b810f739d8a19d13da1b3175fb87"
         )
 
     def test_user_input_downgrade(self):
         user_input = ['1', '6', 'sth', '2.2.1', '', ' ', '\0', '2']
         with patch('builtins.input', side_effect=user_input):
-            self.q._parse_downgrades(GET_DEVICES)
+            self.q._parse_dom0_downgrades(GET_DEVICES)
             device_choice, downgrade_choice = self.q._user_input(
                 self.q.downgrades,
                 downgrade=True
@@ -290,7 +290,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_user_input_downgrade_N(self):
         user_input = ['N']
         with patch('builtins.input', side_effect=user_input):
-            self.q._parse_downgrades(GET_DEVICES)
+            self.q._parse_dom0_downgrades(GET_DEVICES)
             N_choice = self.q._user_input(
                 self.q.downgrades,
                 downgrade=True
@@ -302,8 +302,8 @@ class TestQubesFwupdmgr(unittest.TestCase):
         old_version = None
         new_version = None
         self.q._get_dom0_updates()
-        self.q._parse_updates_info(self.q.updates_info)
-        for number, device in enumerate(self.q.updates_list):
+        self.q._parse_dom0_updates_info(self.q.dom0_updates_info)
+        for number, device in enumerate(self.q.dom0_updates_list):
             if device["Name"] == "ColorHug2":
                 old_version = device["Version"]
                 break
@@ -327,7 +327,36 @@ class TestQubesFwupdmgr(unittest.TestCase):
     @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
     def test_get_usbvm_devices(self):
         self.q._get_usbvm_devices()
-        self.assertTrue(path.exists(FWUPD_DOM0_USBVM_LOG))
+        self.assertTrue(path.exists(FWUPD_USBVM_LOG))
+
+    def test_parse_usbvm_updates(self):
+        self.q._parse_usbvm_updates(GET_DEVICES)
+        self.assertEqual(self.q.usbvm_updates_list[0]["Name"], "ColorHug2")
+        self.assertEqual(self.q.usbvm_updates_list[0]["Version"], "2.0.6")
+        self.assertListEqual(
+            self.q.usbvm_updates_list[0]["Releases"],
+            [
+                {
+                    'Checksum': '490be5c0b13ca4a3f169bf8bc682ba127b8f7b96',
+                    'Description': '<p>This release fixes prevents the firmware returning an '
+                                   'error when the remote SHA1 hash was never sent.</p>',
+                    'Url': 'https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab',
+                    'Version': '2.0.7'
+                }
+            ]
+        )
+
+    def test_updates_crawler(self):
+        crawler_output = io.StringIO()
+        sys.stdout = crawler_output
+        self.q._parse_usbvm_updates(GET_DEVICES)
+        self.q._updates_crawler(self.q.usbvm_updates_list, adminVM=False)
+        with open("test/logs/getupdates.log", "r") as getupdates:
+            self.assertEqual(
+                getupdates.read(),
+                crawler_output.getvalue().strip()
+            )
+        sys.stdout = self.captured_output
 
 
 if __name__ == '__main__':
