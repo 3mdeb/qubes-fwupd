@@ -1,0 +1,30 @@
+#!/bin/bash
+
+ID=$(id -ur)
+if [ $ID != 0 ]; then
+    echo "This script should be run as root (when used in console mode), use sudo." >&2
+    exit 1
+fi
+
+UPDATEVM=`qubes-prefs --force-root updatevm`
+
+if [ -z "$UPDATEVM" ]; then
+    echo "UpdateVM not set, exiting"
+    exit 1
+fi
+
+# Create directories and copy files
+mkdir -p /usr/share/fwupd-qubes/
+cp -R src/ /usr/share/fwupd-qubes/
+cp -R test/ /usr/share/fwupd-qubes/
+qvm-run --nogui -q -u root $UPDATEVM 'mkdir /usr/lib/qubes-fwupd' || exit 1
+
+# Create symlink
+rm /bin/qubes-fwupdmgr
+ln -s /usr/share/fwupd-qubes/src/qubes_fwupdmgr.py /bin/qubes-fwupdmgr
+
+# Copy script to updateVM
+cat src/fwupd-download-updates.sh | qvm-run --pass-io -u root $UPDATEVM \
+    'cat > /usr/lib/qubes-fwupd/fwupd-download-updates.sh'
+qvm-run --nogui -q -u root $UPDATEVM \
+    'chmod +x /usr/lib/qubes-fwupd/fwupd-download-updates.sh' || exit 1
