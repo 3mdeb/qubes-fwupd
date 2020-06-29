@@ -88,6 +88,9 @@ class QubesFwupdmgr:
         if not os.path.exists(FWUPD_DOM0_METADATA_FILE):
             raise Exception("Metadata signature does not exist")
 
+    def _copy_metadata(self):
+        pass
+
     def refresh_metadata(self):
         """Updates metadata with downloaded files."""
         self._download_metadata()
@@ -516,7 +519,7 @@ class QubesFwupdmgr:
                     if i == 0:
                         print(output + u'\u00B7' + data)
                         continue
-                    print(style + _tabs('') + u'\u00B7' + data)
+                    print(style + _tabs(' ') + u'\u00B7' + data)
             elif isinstance(updev_dict[updev_key][0], dict):
                 if level == 0 and help_f is True:
                     print(output)
@@ -569,8 +572,8 @@ class QubesFwupdmgr:
                     description = description.replace("<li>", "")
                     description = description.replace("<ul>", "")
                     description = description.replace("</ul>", "")
-                    description = description.replace("</p>", "\n   ")
-                    description = description.replace("</li>", "\n   ")
+                    description = description.replace("</p>", "\n\t")
+                    description = description.replace("</li>", "\n\t")
                     print("   Description: %s" % description)
                 print(decorator)
                 available_updates = True
