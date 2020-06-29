@@ -490,13 +490,15 @@ class QubesFwupdmgr:
         level -- level of the tree
         """
         def _tabs(key_word):
-            return key_word + '\t'*(2 - int(len(key_word)/8))
+            return key_word + '\t'*(4 - int(len(key_word)/8))
 
         decorator = "==================================="
         print(2*decorator)
         for updev_key in updev_dict:
             style = '\t'*level
             output = style + _tabs(updev_key + ":")
+            if len(updev_key) > 12:
+                continue
             if updev_key == "Icons":
                 continue
             if updev_key == "Releases":
@@ -534,7 +536,9 @@ class QubesFwupdmgr:
         updates_list -- list of devices updates
         adminVM -- dom0 flag
         """
+        available_updates = False
         decorator = "======================================================"
+        print(decorator)
         if adminVM:
             print("Dom0 updates:")
         else:
@@ -544,9 +548,12 @@ class QubesFwupdmgr:
             print("No updates available.")
             return EXIT_CODES["NO_UPDATES"]
         else:
-            print("Available updates:")
-            print(decorator)
             for i, device in enumerate(updates_list):
+                if len(device["Releases"]) == 0:
+                    continue
+                if not available_updates:
+                    print("Available updates:")
+                    print(decorator)
                 print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
                 print("%s. Device: %s" % (i+1, device["Name"]))
                 print("   Current firmware version:\t %s" % device["Version"])
@@ -566,6 +573,10 @@ class QubesFwupdmgr:
                     description = description.replace("</li>", "\n   ")
                     print("   Description: %s" % description)
                 print(decorator)
+                available_updates = True
+            if not available_updates:
+                print("No updates available.")
+                return EXIT_CODES["NO_UPDATES"]
 
     def get_devices_qubes(self):
         """Gathers and prints devices information."""
@@ -582,8 +593,7 @@ class QubesFwupdmgr:
         self._get_dom0_updates()
         self._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-            usbvm_device_info_dict = json.loads(usbvm_device_info.read())
-        self._parse_usbvm_updates(usbvm_device_info_dict)
+            self._parse_usbvm_updates(usbvm_device_info.read())
         self._parse_dom0_updates_info(self.dom0_updates_info)
         self._updates_crawler(self.dom0_updates_list)
         self._updates_crawler(self.usbvm_updates_list, adminVM=False)
