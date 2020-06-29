@@ -1,11 +1,14 @@
-Usage:			
-	qubes-fwupd [OPTION…]:	
+======================================================================
+Usage:		
+======================================================================
+	qubes-fwupd [OPTION…]:
 
-	get-devices:		Get all devices that support firmware updates
-	get-updates:		Gets the list of updates for connected hardware
-	refresh:		Refresh metadata from remote server
-	update:			Updates chosen device to latest firmware version
-	downgrade:		Downgrade chosen device to chosen firmware version
-	clean:			Deletes all cached update files
-Help:			
-	-h --help:		Show help options
+	get-devices:	Get all devices that support firmware updates
+	get-updates:	Gets the list of updates for connected hardware
+	refresh:	Refresh metadata from remote server
+	update:		Updates chosen device to latest firmware version
+	downgrade:	Downgrade chosen device to chosen firmware version
+	clean:		Deletes all cached update files
+Help:		
+======================================================================
+	-h --help:	Show help options

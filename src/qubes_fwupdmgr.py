@@ -483,27 +483,47 @@ class QubesFwupdmgr:
         else:
             print("No downgrades avaible")
 
-    def _output_crawler(self, updev_dict, level):
+    def _output_crawler(self, updev_dict, level, help_f=False, dom0=True):
         """Prints device and updates informations as a tree.
-
         Keywords arguments:
         updev_dict -- update/device information dictionary
         level -- level of the tree
         """
         def _tabs(key_word):
-            return key_word + '\t'*(3 - int(len(key_word)/8))
+            return key_word + '\t'*(2 - int(len(key_word)/8))
+
+        decorator = "==================================="
+        print(2*decorator)
         for updev_key in updev_dict:
             style = '\t'*level
             output = style + _tabs(updev_key + ":")
+            if updev_key == "Icons":
+                continue
+            if updev_key == "Releases":
+                continue
+            if updev_key == "Name":
+                print(style + updev_dict["Name"])
+                print(2*decorator)
+                continue
             if isinstance(updev_dict[updev_key], str):
                 print(output + updev_dict[updev_key])
             elif isinstance(updev_dict[updev_key], int):
                 print(output + str(updev_dict[updev_key]))
             elif isinstance(updev_dict[updev_key][0], str):
-                for data in updev_dict[updev_key]:
-                    print(output + data)
+                for i, data in enumerate(updev_dict[updev_key]):
+                    if i == 0:
+                        print(output + u'\u00B7' + data)
+                        continue
+                    print(style + _tabs('') + u'\u00B7' + data)
             elif isinstance(updev_dict[updev_key][0], dict):
-                print(output)
+                if level == 0 and help_f is True:
+                    print(output)
+                else:
+                    if level == 0 and dom0 is True:
+                        print("Dom0 " + output)
+                    elif level == 0 and dom0 is False:
+                        print("sys-usb " + output)
+
                 for nested_dict in updev_dict[updev_key]:
                     self._output_crawler(nested_dict, level+1)
 
@@ -555,7 +575,7 @@ class QubesFwupdmgr:
             usbvm_device_info_dict = json.loads(usbvm_device_info.read())
         dom0_devices_info_dict = json.loads(self.dom0_devices_info)
         self._output_crawler(dom0_devices_info_dict, 0)
-        self._output_crawler(usbvm_device_info_dict, 0)
+        self._output_crawler(usbvm_device_info_dict, 0, dom0=False)
 
     def get_updates_qubes(self):
         """Gathers and prints updates information."""
@@ -578,7 +598,7 @@ class QubesFwupdmgr:
 
     def help(self):
         """Prints help informations"""
-        self._output_crawler(HELP, 0)
+        self._output_crawler(HELP, 0, help_f=True)
 
 
 def main():

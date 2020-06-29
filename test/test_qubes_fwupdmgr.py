@@ -36,7 +36,7 @@ def device_connected():
 class TestQubesFwupdmgr(unittest.TestCase):
     def setUp(self):
         self.q = qfwupd.QubesFwupdmgr()
-        self.maxDiff = 1500
+        self.maxDiff = 2000
         self.captured_output = io.StringIO()
         sys.stdout = self.captured_output
 
@@ -152,10 +152,9 @@ class TestQubesFwupdmgr(unittest.TestCase):
         crawler_output = io.StringIO()
         sys.stdout = crawler_output
         self.q._output_crawler(json.loads(UPDATE_INFO), 0)
-        sys.stdout = sys.__stdout__
-        with open("test/logs/getupdates.log", "r") as getupdates:
+        with open("test/logs/get_devices.log", "r") as get_devices:
             self.assertEqual(
-                getupdates.read(),
+                get_devices.read(),
                 crawler_output.getvalue().strip()
             )
         sys.stdout = self.captured_output
@@ -351,7 +350,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         sys.stdout = crawler_output
         self.q._parse_usbvm_updates(GET_DEVICES)
         self.q._updates_crawler(self.q.usbvm_updates_list, adminVM=False)
-        with open("test/logs/getupdates.log", "r") as getupdates:
+        with open("test/logs/get_updates.log", "r") as getupdates:
             self.assertEqual(
                 getupdates.read(),
                 crawler_output.getvalue().strip()
