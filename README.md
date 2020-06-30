@@ -88,7 +88,7 @@ OK (skipped=8)
 To verify instalation in dom0 move to:
 
 ```
-cd /usr/share/fwupd-qubes/
+cd /usr/share/qubes-fwupd/
 ```
 
 Then run the tests with sudo privileges:

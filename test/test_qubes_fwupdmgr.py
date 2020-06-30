@@ -4,6 +4,7 @@ import json
 import unittest
 import os.path as path
 import src.qubes_fwupdmgr as qfwupd
+import subprocess
 import sys
 import io
 import platform
@@ -21,6 +22,17 @@ FWUPD_DOM0_METADATA_SIGNATURE = path.join(
 )
 FWUPD_DOM0_METADATA_FILE = path.join(
     FWUPD_DOM0_METADATA_DIR,
+    "firmware.xml.gz"
+)
+FWUPD_USBVM_DIR = "/home/user/.fwupd"
+FWUPD_USBVM_UPDATES_DIR = path.join(FWUPD_USBVM_DIR, "updates")
+FWUPD_USBVM_METADATA_DIR = path.join(FWUPD_USBVM_DIR, "metadata")
+FWUPD_USBVM_METADATA_SIGNATURE = path.join(
+    FWUPD_USBVM_METADATA_DIR,
+    "firmware.xml.gz.asc"
+)
+FWUPD_USBVM_METADATA_FILE = path.join(
+    FWUPD_USBVM_METADATA_DIR,
     "firmware.xml.gz"
 )
 
@@ -356,6 +368,117 @@ class TestQubesFwupdmgr(unittest.TestCase):
                 crawler_output.getvalue().strip()
             )
         sys.stdout = self.captured_output
+
+    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    def test_validate_usbvm_dirs(self):
+        self.q._validate_usbvm_dirs()
+        cmd_validate_metadata = [
+            "qvm-run",
+            "--pass-io",
+            "sys-usb",
+            "[ -d %s ]" %
+            FWUPD_USBVM_METADATA_DIR
+        ]
+        p = subprocess.Popen(cmd_validate_metadata)
+        p.wait()
+        self.assertEqual(
+            p.returncode,
+            0,
+            msg="Creating metadata directory failed"
+        )
+        cmd_validate_udpdate = [
+            "qvm-run",
+            "--pass-io",
+            "sys-usb",
+            "[ -d %s ]" %
+            FWUPD_USBVM_UPDATES_DIR
+        ]
+        p = subprocess.Popen(cmd_validate_udpdate)
+        p.wait()
+        self.assertEqual(
+            p.returncode,
+            0,
+            msg="Creating update directory failed"
+        )
+
+    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    def test_copy_metadata(self):
+        self.q._download_metadata()
+        self.q._copy_metadata()
+        cmd_validate_metadata_file = [
+            "qvm-run",
+            "--pass-io",
+            "sys-usb",
+            "[ -f %s ]" %
+            FWUPD_USBVM_METADATA_FILE
+        ]
+        p = subprocess.Popen(cmd_validate_metadata_file)
+        p.wait()
+        self.assertEqual(
+            p.returncode,
+            0,
+            msg="Metadata file does not exist"
+        )
+        cmd_validate_metadata_sig = [
+            "qvm-run",
+            "--pass-io",
+            "sys-usb",
+            "[ -f %s ]" %
+            FWUPD_USBVM_METADATA_SIGNATURE
+        ]
+        p = subprocess.Popen(cmd_validate_metadata_sig)
+        p.wait()
+        self.assertEqual(
+            p.returncode,
+            0,
+            msg="Metadata signature does not exist"
+        )
+
+    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    def test_validate_usbvm_metadata(self):
+        self.q._download_metadata()
+        self.q._copy_metadata()
+        self.q._validate_usbvm_metadata()
+
+    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    def test_refresh_usbvm_metadata(self):
+        self.q._download_metadata()
+        self.q._copy_metadata()
+        self.q._validate_usbvm_metadata()
+        self.q._refresh_usbvm_metadata()
+
+    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    def test_clean_usbvm(self):
+        self.q._validate_usbvm_dirs()
+        self.q._clean_usbvm()
+        cmd_validate_metadata = [
+            "qvm-run",
+            "--pass-io",
+            "sys-usb",
+            "! [ -d %s ]" %
+            FWUPD_USBVM_METADATA_DIR
+        ]
+        p = subprocess.Popen(cmd_validate_metadata)
+        p.wait()
+        self.assertEqual(
+            p.returncode,
+            0,
+            msg="Cleaning metadata directory failed"
+        )
+        cmd_validate_udpdate = [
+            "qvm-run",
+            "--pass-io",
+            "sys-usb",
+            "! [ -d %s ]" %
+            FWUPD_USBVM_UPDATES_DIR
+        ]
+        p = subprocess.Popen(cmd_validate_udpdate)
+        p.wait()
+        self.assertEqual(
+            p.returncode,
+            0,
+            msg="Cleaning update directory failed"
+        )
 
 
 if __name__ == '__main__':

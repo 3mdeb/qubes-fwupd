@@ -27,18 +27,30 @@ import sys
 import xml.etree.ElementTree as ET
 from distutils.version import LooseVersion as l_ver
 
-FWUPD_QUBES_DIR = "/usr/share/fwupd-qubes"
+FWUPD_QUBES_DIR = "/usr/share/qubes-fwupd"
 FWUPD_DOM0_UPDATE = os.path.join(FWUPD_QUBES_DIR, "src/fwupd-dom0-update")
 FWUPD_DOM0_DIR = "/root/.cache/fwupd"
 FWUPD_DOM0_METADATA_DIR = os.path.join(FWUPD_DOM0_DIR, "metadata")
 FWUPD_DOM0_UPDATES_DIR = os.path.join(FWUPD_DOM0_DIR, "updates")
-FWUPD_USBVM_LOG = os.path.join(FWUPD_DOM0_DIR, "usbvm-devices.log")
 FWUPD_DOM0_METADATA_SIGNATURE = os.path.join(
     FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz.asc"
 )
 FWUPD_DOM0_METADATA_FILE = os.path.join(
     FWUPD_DOM0_METADATA_DIR,
+    "firmware.xml.gz"
+)
+FWUPD_USBVM_LOG = os.path.join(FWUPD_DOM0_DIR, "usbvm-devices.log")
+FWUPD_USBVM_VALIDATE = "/usr/share/qubes-fwupd/fwupd_usbvm_validate.py"
+FWUPD_USBVM_DIR = "/home/user/.fwupd"
+FWUPD_USBVM_UPDATES_DIR = os.path.join(FWUPD_USBVM_DIR, "updates")
+FWUPD_USBVM_METADATA_DIR = os.path.join(FWUPD_USBVM_DIR, "metadata")
+FWUPD_USBVM_METADATA_SIGNATURE = os.path.join(
+    FWUPD_USBVM_METADATA_DIR,
+    "firmware.xml.gz.asc"
+)
+FWUPD_USBVM_METADATA_FILE = os.path.join(
+    FWUPD_USBVM_METADATA_DIR,
     "firmware.xml.gz"
 )
 FWUPD_DOWNLOAD_PREFIX = "https://fwupd.org/downloads/"
@@ -88,12 +100,155 @@ class QubesFwupdmgr:
         if not os.path.exists(FWUPD_DOM0_METADATA_FILE):
             raise Exception("Metadata signature does not exist")
 
+    def _validate_usbvm_dirs(self):
+        """Validates if sys-ubs updates and metadata directories exist."""
+        cmd_validate_dirs = [
+            "qvm-run",
+            "--pass-io",
+            "sys-usb",
+            'script --quiet --return --command "%s dirs"' %
+            FWUPD_USBVM_VALIDATE
+        ]
+        p = subprocess.Popen(cmd_validate_dirs)
+        p.wait()
+        if p.returncode != 0:
+            raise Exception("Validation of sys-usb directories failed.")
+
     def _copy_metadata(self):
-        pass
+        """Copies metadata files to sys-usb."""
+        cat_file = "cat > %s" % FWUPD_USBVM_METADATA_FILE
+        cmd_copy_file = 'cat %s | qvm-run --nogui --pass-io sys-usb "%s"' % (
+            FWUPD_DOM0_METADATA_FILE,
+            cat_file
+        )
+        cat_sig = "cat > %s" % FWUPD_USBVM_METADATA_SIGNATURE
+        cmd_copy_sig = 'cat %s | qvm-run --nogui --pass-io sys-usb "%s"' % (
+            FWUPD_DOM0_METADATA_SIGNATURE,
+            cat_sig
+        )
+        p = subprocess.Popen(cmd_copy_file, shell=True)
+        p.wait()
+        if p.returncode != 0:
+            raise Exception("Copying metadata file failed.")
+        p = subprocess.Popen(cmd_copy_sig, shell=True)
+        p.wait()
+        if p.returncode != 0:
+            raise Exception("Copying metadata signature failed.")
+
+    def _validate_usbvm_metadata(self):
+        """Checks GPG signature of metadata files in sys-usb."""
+        cmd_validate_metadata = [
+            "qvm-run",
+            "--pass-io",
+            "sys-usb",
+            'script --quiet --return --command "%s metadata"' %
+            FWUPD_USBVM_VALIDATE
+        ]
+        p = subprocess.Popen(cmd_validate_metadata)
+        p.wait()
+        if p.returncode != 0:
+            raise Exception("Metadata validation failed")
+
+    def _refresh_usbvm_metadata(self):
+        """Refreshes metadata in sys-usb."""
+        cmd_refresh_metadata = [
+            "qvm-run",
+            "--pass-io",
+            "sys-usb",
+            'script --quiet --return --command "%s refresh %s %s lvfs"' %
+            (
+                FWUPDMGR,
+                FWUPD_USBVM_METADATA_FILE,
+                FWUPD_USBVM_METADATA_SIGNATURE,
+            )
+        ]
+        p = subprocess.Popen(cmd_refresh_metadata)
+        p.wait()
+        if p.returncode != 0:
+            raise Exception("Metadata refresh in sys-usb failed")
+
+    def _copy_firmware_updates(self, archive):
+        """Copies updates files to sys-usb.
+
+        Keywords arguments:
+        archive - name of the archive file
+        """
+        archive_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, archive)
+        output_path = os.path.join(FWUPD_USBVM_UPDATES_DIR, archive)
+        cat_file = "cat > %s" % output_path
+        cmd_copy_file = 'cat %s | qvm-run --nogui --pass-io sys-usb "%s"' % (
+            archive_path,
+            cat_file
+        )
+        p = subprocess.Popen(cmd_copy_file, shell=True)
+        p.wait()
+        if p.returncode != 0:
+            raise Exception("Copying metadata file failed.")
+
+    def _install_usbvm_firmware_update(self, path):
+        """Installs firmware update for specified device in dom0.
+
+        Keywords arguments:
+        path - absolute path to firmware update archive
+        """
+        CMD_update = [
+            "qvm-run",
+            "--pass-io",
+            "sys-usb",
+            'script --quiet --return --command "%s install %s" /dev/null' % (
+                FWUPDMGR,
+                path
+            )
+        ]
+        p = subprocess.Popen(CMD_update)
+        p.wait()
+        if p.returncode != 0:
+            raise Exception("fwudp-qubes: Firmware update failed")
+
+    def _install_usbvm_firmware_downgrades(self, path):
+        """Installs firmware downgrades for specified device in dom0.
+
+        Keywords arguments:
+        path - absolute path to firmware update archive
+        """
+        CMD_downgrade = [
+            "qvm-run",
+            "--pass-io",
+            "sys-usb",
+            'script --quiet --return --command "%s --allow-older install %s"'
+            ' /dev/null' % (
+                FWUPDMGR,
+                path
+            )
+        ]
+        p = subprocess.Popen(CMD_downgrade)
+        p.wait()
+        if p.returncode != 0:
+            raise Exception("fwudp-qubes: Firmware downgrade failed")
+
+    def _clean_usbvm(self):
+        """Cleans sys-usb directories."""
+        cmd_clean = [
+            "qvm-run",
+            "--pass-io",
+            "sys-usb",
+            'script --quiet --return --command "%s clean"' %
+            FWUPD_USBVM_VALIDATE
+        ]
+        p = subprocess.Popen(cmd_clean)
+        p.wait()
+        if p.returncode != 0:
+            raise Exception("Cleaning sys-usb directories failed")
 
     def refresh_metadata(self):
         """Updates metadata with downloaded files."""
         self._download_metadata()
+        # sys-usb refresh
+        self._validate_usbvm_dirs()
+        self._copy_metadata()
+        self._validate_usbvm_metadata()
+        self._refresh_usbvm_metadata()
+        # dom0 refresh
         cmd_refresh = [
             FWUPDMGR,
             "refresh",
@@ -269,8 +424,8 @@ class QubesFwupdmgr:
                 self.url = ver_check["Url"]
                 self.sha = ver_check["Checksum"]
 
-    def _install_firmware_update(self, path):
-        """Installs firmware update for specified device.
+    def _install_dom0_firmware_update(self, path):
+        """Installs firmware update for specified device in dom0.
 
         Keywords arguments:
         path - absolute path to firmware update archive
@@ -408,7 +563,7 @@ class QubesFwupdmgr:
         if self.name == "System Firmware":
             path = arch_path.replace(".cab", "")
             self._verify_dmi(path, self.version)
-        self._install_firmware_update(arch_path)
+        self._install_dom0_firmware_update(arch_path)
 
     def _parse_dom0_downgrades(self, device_list):
         """Parses informations about possible downgrades
@@ -437,7 +592,7 @@ class QubesFwupdmgr:
                     }
                 )
 
-    def _install_firmware_downgrade(self, path):
+    def _install_dom0_firmware_downgrade(self, path):
         """Installs firmware downgrade for specified device.
 
         Keywords arguments:
@@ -482,7 +637,7 @@ class QubesFwupdmgr:
                     self.downgrades[device_choice]["Version"],
                     downgrade=True
                 )
-            self._install_firmware_downgrade(arch_path)
+            self._install_dom0_firmware_downgrade(arch_path)
         else:
             print("No downgrades avaible")
 
