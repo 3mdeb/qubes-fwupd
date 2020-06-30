@@ -42,7 +42,7 @@ FWUPD_DOM0_METADATA_FILE = os.path.join(
 )
 FWUPD_USBVM_LOG = os.path.join(FWUPD_DOM0_DIR, "usbvm-devices.log")
 FWUPD_USBVM_VALIDATE = "/usr/share/qubes-fwupd/fwupd_usbvm_validate.py"
-FWUPD_USBVM_DIR = "/home/user/.fwupd"
+FWUPD_USBVM_DIR = "/home/user/.cache/fwupd"
 FWUPD_USBVM_UPDATES_DIR = os.path.join(FWUPD_USBVM_DIR, "updates")
 FWUPD_USBVM_METADATA_DIR = os.path.join(FWUPD_USBVM_DIR, "metadata")
 FWUPD_USBVM_METADATA_SIGNATURE = os.path.join(

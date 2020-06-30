@@ -24,7 +24,7 @@ FWUPD_DOM0_METADATA_FILE = path.join(
     FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz"
 )
-FWUPD_USBVM_DIR = "/home/user/.fwupd"
+FWUPD_USBVM_DIR = "/home/user/.cache/fwupd"
 FWUPD_USBVM_UPDATES_DIR = path.join(FWUPD_USBVM_DIR, "updates")
 FWUPD_USBVM_METADATA_DIR = path.join(FWUPD_USBVM_DIR, "metadata")
 FWUPD_USBVM_METADATA_SIGNATURE = path.join(

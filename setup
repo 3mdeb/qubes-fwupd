@@ -17,8 +17,8 @@ fi
 mkdir -p /usr/share/qubes-fwupd/
 cp -R src/ /usr/share/qubes-fwupd/
 cp -R test/ /usr/share/qubes-fwupd/
-qvm-run --nogui -q -u root $UPDATEVM 'mkdir /usr/lib/qubes-fwupd' || exit 1
-qvm-run --nogui -q -u root $UPDATEVM 'mkdir /usr/share/qubes-fwupd' || exit 1
+qvm-run --nogui -q -u root $UPDATEVM 'mkdir /usr/lib/qubes-fwupd'
+qvm-run --nogui -q -u root $USBVM 'mkdir /usr/share/qubes-fwupd'
 
 # Create symlink
 rm /bin/qubes-fwupdmgr
@@ -31,7 +31,8 @@ qvm-run --nogui -q -u root $UPDATEVM \
     'chmod +x /usr/lib/qubes-fwupd/fwupd-download-updates.sh' || exit 1
 
 # Copy script to sys-usb
-cat src/updatevm/fwupd-download-updates.sh | qvm-run --pass-io -u root $UPDATEVM \
+cat src/sys-usb/fwupd_usbvm_validate.py | qvm-run --pass-io -u root $USBVM \
     'cat > /usr/share/qubes-fwupd/fwupd_usbvm_validate.py'
-qvm-run --nogui -q -u root $UPDATEVM \
+qvm-run --nogui -q -u root $USBVM \
     'chmod +x /usr/share/qubes-fwupd/fwupd_usbvm_validate.py' || exit 1
+echo "fwupd wrapper installed successfully"
