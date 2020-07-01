@@ -31,7 +31,7 @@ qvm-run --nogui -q -u root $UPDATEVM \
     'chmod +x /usr/lib/qubes-fwupd/fwupd-download-updates.sh' || exit 1
 
 # Copy script to sys-usb
-cat src/sys-usb/fwupd_usbvm_validate.py | qvm-run --pass-io -u root $USBVM \
+cat src/usbvm/fwupd_usbvm_validate.py | qvm-run --pass-io -u root $USBVM \
     'cat > /usr/share/qubes-fwupd/fwupd_usbvm_validate.py'
 qvm-run --nogui -q -u root $USBVM \
     'chmod +x /usr/share/qubes-fwupd/fwupd_usbvm_validate.py' || exit 1

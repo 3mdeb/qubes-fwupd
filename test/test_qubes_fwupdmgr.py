@@ -116,32 +116,61 @@ class TestQubesFwupdmgr(unittest.TestCase):
         )
         self.assertTrue(path.exists(update_path))
 
-    def test_user_input_empty_list(self):
-        empty_update_list = []
-        self.assertEqual(self.q._user_input(empty_update_list), 99)
+    def test_user_input_empty_dict(self):
+        downgrade_dict = {
+                "usbvm": [],
+                "adminvm": []
+            }
+        self.assertEqual(self.q._user_input(downgrade_dict), 99)
 
     def test_user_input_n(self):
         user_input = ['sth', 'n']
         with patch('builtins.input', side_effect=user_input):
             self.q._parse_dom0_updates_info(UPDATE_INFO)
-            choice = self.q._user_input(self.q.dom0_updates_list)
+            downgrade_dict = {
+                "usbvm": self.q.dom0_updates_list,
+                "adminvm": self.q.dom0_updates_list
+            }
+            choice = self.q._user_input(downgrade_dict)
         self.assertEqual(choice, 99)
         user_input = ['sth', 'N']
         with patch('builtins.input', side_effect=user_input):
             self.q._parse_dom0_updates_info(UPDATE_INFO)
-            choice = self.q._user_input(self.q.dom0_updates_list)
+            downgrade_dict = {
+                "usbvm": self.q.dom0_updates_list,
+                "adminvm": self.q.dom0_updates_list
+            }
+            choice = self.q._user_input(downgrade_dict)
         self.assertEqual(choice, 99)
 
     def test_user_input_choice(self):
         user_input = ['6', '1']
         with patch('builtins.input', side_effect=user_input):
             self.q._parse_dom0_updates_info(UPDATE_INFO)
-            choice = self.q._user_input(self.q.dom0_updates_list)
+            downgrade_dict = {
+                "usbvm": self.q.dom0_updates_list,
+                "adminvm": self.q.dom0_updates_list
+            }
+            key, choice = self.q._user_input(downgrade_dict)
+        self.assertEqual(key, "adminvm")
         self.assertEqual(choice, 0)
+
+    def test_user_input_choice_usbvm(self):
+        user_input = ['6', '2']
+        with patch('builtins.input', side_effect=user_input):
+            self.q._parse_dom0_updates_info(UPDATE_INFO)
+            downgrade_dict = {
+                "usbvm": self.q.dom0_updates_list,
+                "adminvm": self.q.dom0_updates_list
+            }
+            key, choice = self.q._user_input(downgrade_dict)
+        self.assertEqual(key, "usbvm")
+        self.assertEqual(choice, 1)
 
     def test_parse_parameters(self):
         self.q._parse_dom0_updates_info(UPDATE_INFO)
-        self.q._parse_parameters(self.q.dom0_updates_list, 0)
+        update_dict = {"adminvm": self.q.dom0_updates_list}
+        self.q._parse_parameters(update_dict, "adminvm", 0)
         self.assertEqual(
             self.q.url,
             "https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab"
@@ -155,6 +184,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "2.0.7"
         )
 
+    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
     def test_clean_cache(self):
         self.q.clean_cache()
         self.assertFalse(path.exists(FWUPD_DOM0_METADATA_DIR))
@@ -247,8 +277,8 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_downgrade_firmware(self):
         old_version = None
         self.q._get_dom0_devices()
-        self.q._parse_dom0_downgrades(self.q.dom0_devices_info)
-        for number, device in enumerate(self.q.downgrades):
+        downgrades = self.q._parse_downgrades(self.q.dom0_devices_info)
+        for number, device in enumerate(downgrades):
             if device["Name"] == "ColorHug2":
                 old_version = device["Version"]
                 break
@@ -258,52 +288,61 @@ class TestQubesFwupdmgr(unittest.TestCase):
         with patch('builtins.input', side_effect=user_input):
             self.q.downgrade_firmware()
         self.q._get_dom0_devices()
-        self.q._parse_dom0_downgrades(self.q.dom0_devices_info)
-        new_version = self.q.downgrades[number]["Version"]
+        downgrades = self.q._parse_downgrades(self.q.dom0_devices_info)
+        new_version = downgrades[number]["Version"]
         self.assertTrue(
             ver.LooseVersion(old_version) > ver.LooseVersion(new_version)
         )
 
     def test_parse_downgrades(self):
-        self.q._parse_dom0_downgrades(GET_DEVICES)
+        downgrades = self.q._parse_downgrades(GET_DEVICES)
         self.assertEqual(
-            self.q.downgrades[0]["Name"],
+            downgrades[0]["Name"],
             "ColorHug2"
         )
         self.assertEqual(
-            self.q.downgrades[0]["Version"],
+            downgrades[0]["Version"],
             "2.0.6"
         )
         self.assertEqual(
-            self.q.downgrades[0]["Releases"][0]["Version"],
+            downgrades[0]["Releases"][0]["Version"],
             "2.0.5"
         )
         self.assertEqual(
-            self.q.downgrades[0]["Releases"][0]["Url"],
+            downgrades[0]["Releases"][0]["Url"],
             "https://fwupd.org/downloads/f7dd4ab29fa610438571b8b62b26b0b0e57bb35b-hughski-colorhug2-2.0.5.cab"
         )
         self.assertEqual(
-            self.q.downgrades[0]["Releases"][0]["Checksum"],
+            downgrades[0]["Releases"][0]["Checksum"],
             "4ee9dfa38df3b810f739d8a19d13da1b3175fb87"
         )
 
     def test_user_input_downgrade(self):
         user_input = ['1', '6', 'sth', '2.2.1', '', ' ', '\0', '2']
         with patch('builtins.input', side_effect=user_input):
-            self.q._parse_dom0_downgrades(GET_DEVICES)
-            device_choice, downgrade_choice = self.q._user_input(
-                self.q.downgrades,
+            downgrade_list = self.q._parse_downgrades(GET_DEVICES)
+            downgrade_dict = {
+                "usbvm": downgrade_list,
+                "adminvm": downgrade_list
+            }
+            key, device_choice, downgrade_choice = self.q._user_input(
+                downgrade_dict,
                 downgrade=True
             )
+        self.assertEqual(key, "adminvm")
         self.assertEqual(device_choice, 0)
         self.assertEqual(downgrade_choice, 1)
 
     def test_user_input_downgrade_N(self):
         user_input = ['N']
         with patch('builtins.input', side_effect=user_input):
-            self.q._parse_dom0_downgrades(GET_DEVICES)
+            downgrade_list = self.q._parse_downgrades(GET_DEVICES)
+            downgrade_dict = {
+                "usbvm": downgrade_list,
+                "adminvm": downgrade_list
+            }
             N_choice = self.q._user_input(
-                self.q.downgrades,
+                downgrade_dict,
                 downgrade=True
             )
         self.assertEqual(N_choice, 99)
