@@ -115,8 +115,8 @@ class QubesFwupdmgr:
             raise Exception("Validation of sys-usb directories failed.")
 
     def _validate_usbvm_archive(self, arch_name, sha):
-        """Validates if sys-ubs updates and metadata directories exist."""
-        arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, arch_name)
+        """Validates checksum and gpg signature of the archive file."""
+        arch_path = os.path.join(FWUPD_USBVM_UPDATES_DIR, arch_name)
         arch_validate = "%s updates %s %s" % (
             FWUPD_USBVM_VALIDATE,
             arch_path,
@@ -132,7 +132,7 @@ class QubesFwupdmgr:
         p = subprocess.Popen(cmd_validate_arch)
         p.wait()
         if p.returncode != 0:
-            raise Exception("Validation of sys-usb directories failed.")
+            raise Exception("Validation of the archive file failed.")
 
     def _copy_metadata(self):
         """Copies metadata files to sys-usb."""
@@ -371,7 +371,7 @@ class QubesFwupdmgr:
         self._updates_crawler(
             updates_dict["usbvm"],
             adminVM=False,
-            prefix=adminvm_updates_num
+            prefix=adminvm_updates_num+1
         )
 
         while True:
@@ -655,8 +655,8 @@ class QubesFwupdmgr:
             usbvm_downgrades = self._parse_downgrades(usbvm_device_info.read())
         if len(dom0_downgrades + usbvm_downgrades) != 0:
             downgrade_dict = {
-                "usbvm": dom0_downgrades,
-                "adminvm": usbvm_downgrades
+                "usbvm": usbvm_downgrades,
+                "adminvm": dom0_downgrades
             }
             ret_input = self._user_input(downgrade_dict, downgrade=True)
             if ret_input == EXIT_CODES["NO_UPDATES"]:
@@ -671,7 +671,7 @@ class QubesFwupdmgr:
             )
             arch_name = downgrade_url.replace(FWUPD_DOWNLOAD_PREFIX, "")
             arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, arch_name)
-            if downgrade_dict[device_choice]["Name"] == "System Firmware":
+            if downgrade_dict[key][device_choice]["Name"] == "System Firmware":
                 path = arch_path.replace(".cab", "")
                 self._verify_dmi(
                     path,

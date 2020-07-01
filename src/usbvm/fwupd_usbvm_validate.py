@@ -106,7 +106,6 @@ class FwupdUsbvmUpdates:
             "%s" % output_path,
             "%s" % archive_path
         ]
-        shutil.copy(archive_path, FWUPD_USBVM_UPDATES_DIR)
         p = subprocess.Popen(cmd_extract, stdout=subprocess.PIPE)
         p.communicate()[0].decode('ascii')
         if p.returncode != 0:
@@ -203,7 +202,7 @@ def main():
                 "Invalid number of arguments.\n"
                 "Expected archive path and checksum."
             )
-        f.validate_updates(sys.argv[3], sys.argv[4])
+        f.validate_updates(sys.argv[2], sys.argv[3])
 
 
 if __name__ == '__main__':
