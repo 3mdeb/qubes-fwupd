@@ -187,6 +187,7 @@ class FwupdUsbvmUpdates:
 
 
 def main():
+    print("Running validation script")
     f = FwupdUsbvmUpdates()
     if len(sys.argv) < 2:
         raise Exception("Invalid number of arguments.")
@@ -203,3 +204,7 @@ def main():
                 "Expected archive path and checksum."
             )
         f.validate_updates(sys.argv[3], sys.argv[4])
+
+
+if __name__ == '__main__':
+    main()

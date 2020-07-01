@@ -404,6 +404,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
     def test_copy_metadata(self):
         self.q._download_metadata()
+        self.q._validate_usbvm_dirs()
         self.q._copy_metadata()
         cmd_validate_metadata_file = [
             "qvm-run",
@@ -437,12 +438,14 @@ class TestQubesFwupdmgr(unittest.TestCase):
     @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
     def test_validate_usbvm_metadata(self):
         self.q._download_metadata()
+        self.q._validate_usbvm_dirs()
         self.q._copy_metadata()
         self.q._validate_usbvm_metadata()
 
     @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
     def test_refresh_usbvm_metadata(self):
         self.q._download_metadata()
+        self.q._validate_usbvm_dirs()
         self.q._copy_metadata()
         self.q._validate_usbvm_metadata()
         self.q._refresh_usbvm_metadata()
