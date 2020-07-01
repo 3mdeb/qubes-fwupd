@@ -577,8 +577,7 @@ class QubesFwupdmgr:
         self._parse_dom0_updates_info(self.dom0_updates_info)
         self._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-            usbvm_device_info_dict = json.loads(usbvm_device_info.read())
-        self._parse_usbvm_updates(usbvm_device_info_dict)
+            self._parse_usbvm_updates(usbvm_device_info.read())
         update_dict = {
             "usbvm": self.usbvm_updates_list,
             "adminvm": self.dom0_updates_list
