@@ -143,6 +143,7 @@ class FwupdUsbvmUpdates:
 
     def validate_dirs(self):
         """Validates and creates directories"""
+        print("Validating directories")
         if os.path.exists(FWUPD_USBVM_METADATA_DIR):
             shutil.rmtree(FWUPD_USBVM_METADATA_DIR)
             self._create_dirs(FWUPD_USBVM_METADATA_DIR)
@@ -162,10 +163,13 @@ class FwupdUsbvmUpdates:
 
     def validate_metadata(self):
         """Validates received the metadata files."""
+        print("Running validation of the metadata files")
         try:
             self._gpg_verification(FWUPD_USBVM_METADATA_FILE)
-        except Exception:
+        except Exception as e:
+            print(str(e), file=sys.stderr)
             self.clean()
+            exit(1)
 
     def validate_updates(self, archive_path, sha):
         """Validates recived an update file.
@@ -174,6 +178,7 @@ class FwupdUsbvmUpdates:
         archive_path - path to the firmware update archive
         sha -- SHA1 checksum of the firmware update archive
         """
+        print("Running validation of the update archive")
         self._check_shasum(archive_path, sha)
         output_path = archive_path.replace(".cab", "")
         self._extract_archive(archive_path, output_path)
@@ -181,12 +186,13 @@ class FwupdUsbvmUpdates:
         file_path = glob.glob(signature_name)
         try:
             self._gpg_verification(file_path[0].replace(".asc", ""))
-        except Exception:
+        except Exception as e:
+            print(str(e), file=sys.stderr)
             self.clean()
+            exit(1)
 
 
 def main():
-    print("Running validation script")
     f = FwupdUsbvmUpdates()
     if len(sys.argv) < 2:
         raise Exception("Invalid number of arguments.")

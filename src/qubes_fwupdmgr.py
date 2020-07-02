@@ -583,6 +583,8 @@ class QubesFwupdmgr:
                                 "Description": update["Description"]
                             }
                         )
+                if not self.usbvm_updates_list[-1]["Releases"]:
+                    self.usbvm_updates_list.pop()
 
     def update_firmware(self, usbvm=False):
         """Updates firmware of the specified device.

@@ -9,6 +9,7 @@ import sys
 import io
 import platform
 from test.fwupd_logs import UPDATE_INFO, GET_DEVICES, DMI_DECODE
+from test.fwupd_logs import GET_DEVICES_NO_UPDATES
 from unittest.mock import patch
 
 FWUPD_DOM0_DIR = "/root/.cache/fwupd"
@@ -340,7 +341,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         )
 
     @unittest.skipUnless(device_connected_dom0(), REQUIRED_DEV)
-    def test_downgrade_dom0_firmware(self):
+    def test_downgrade_firmware_dom0(self):
         old_version = None
         self.q._get_dom0_devices()
         downgrades = self.q._parse_downgrades(self.q.dom0_devices_info)
@@ -361,7 +362,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         )
 
     @unittest.skipUnless(device_connected_usbvm(), REQUIRED_DEV)
-    def test_downgrade_usbvm_firmware(self):
+    def test_downgrade_firmware_usbvm(self):
         old_version = None
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
@@ -374,7 +375,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             self.fail("Test device not found")
         user_input = [str(number+1), '1']
         with patch('builtins.input', side_effect=user_input):
-            self.q.downgrade_firmware()
+            self.q.downgrade_firmware(usbvm=True)
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
             downgrades = self.q._parse_downgrades(usbvm_device_info.read())
@@ -495,7 +496,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             self.fail("Test device not found")
         user_input = [str(number+1), '1']
         with patch('builtins.input', side_effect=user_input):
-            self.q.downgrade_firmware()
+            self.q.update_firmware(usbvm=True)
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
             usbvm_devices_info_dict = json.loads(usbvm_device_info.read())
@@ -530,6 +531,10 @@ class TestQubesFwupdmgr(unittest.TestCase):
                 }
             ]
         )
+
+    def test_parse_usbvm_updates_no_updates_available(self):
+        self.q._parse_usbvm_updates(GET_DEVICES_NO_UPDATES)
+        self.assertListEqual(self.q.usbvm_updates_list, [])
 
     def test_updates_crawler(self):
         crawler_output = io.StringIO()
@@ -672,14 +677,14 @@ class TestQubesFwupdmgr(unittest.TestCase):
             name
         )
         self.q._validate_usbvm_archive(
-            url,
+            name,
             sha
         )
         cmd_validate_udpdate = [
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "! [ -d %s ]" %
+            "[ -d %s ]" %
             path.join(FWUPD_USBVM_UPDATES_DIR, name.replace(".cab", ""))
         ]
         p = subprocess.Popen(cmd_validate_udpdate)
