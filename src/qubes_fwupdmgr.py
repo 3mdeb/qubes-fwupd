@@ -72,6 +72,11 @@ HELP = {
             "clean": "Deletes all cached update files"
         }
     ],
+    "Flags": [
+        {
+            "--sys-usb": "Search devices in sys-usb VM"
+        }
+    ],
     "Help": [
         {
             "-h --help": "Show help options"
@@ -262,8 +267,12 @@ class QubesFwupdmgr:
         if p.returncode != 0:
             raise Exception("Cleaning sys-usb directories failed")
 
-    def refresh_metadata(self):
-        """Updates metadata with downloaded files."""
+    def refresh_metadata(self, usbvm=False):
+        """Updates metadata with downloaded files.
+
+        Keyword arguments:
+        usbvm -- sys-usb support
+        """
         self._download_metadata()
         # sys-usb refresh
         self._validate_usbvm_dirs()
@@ -350,7 +359,7 @@ class QubesFwupdmgr:
         if not os.path.exists(update_path):
             raise Exception("Firmware update files do not exist")
 
-    def _user_input(self, updates_dict, downgrade=False):
+    def _user_input(self, updates_dict, downgrade=False, usbvm=False):
         """UI for update process.
 
         Keywords arguments:
@@ -358,7 +367,10 @@ class QubesFwupdmgr:
         downgrade -- downgrade flag
         """
         decorator = "======================================================"
-        updates_list = updates_dict["usbvm"] + updates_dict["adminvm"]
+        if usbvm:
+            updates_list = updates_dict["usbvm"] + updates_dict["adminvm"]
+        else:
+            updates_list = updates_dict["adminvm"]
         adminvm_updates_num = len(updates_dict["adminvm"])-1
         if len(updates_list) == 0:
             print("No updates available.")
@@ -368,11 +380,12 @@ class QubesFwupdmgr:
         else:
             print("Available updates:")
         self._updates_crawler(updates_dict["adminvm"])
-        self._updates_crawler(
-            updates_dict["usbvm"],
-            adminVM=False,
-            prefix=adminvm_updates_num+1
-        )
+        if usbvm:
+            self._updates_crawler(
+                updates_dict["usbvm"],
+                adminVM=False,
+                prefix=adminvm_updates_num+1
+            )
 
         while True:
             try:
@@ -571,18 +584,28 @@ class QubesFwupdmgr:
                             }
                         )
 
-    def update_firmware(self):
-        """Updates firmware of the specified device."""
+    def update_firmware(self, usbvm=False):
+        """Updates firmware of the specified device.
+
+        Keyword arguments:
+        usbvm -- sys-usb support
+        """
         self._get_dom0_updates()
         self._parse_dom0_updates_info(self.dom0_updates_info)
-        self._get_usbvm_devices()
-        with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-            self._parse_usbvm_updates(usbvm_device_info.read())
-        update_dict = {
-            "usbvm": self.usbvm_updates_list,
-            "adminvm": self.dom0_updates_list
-        }
-        ret_input = self._user_input(update_dict)
+        if usbvm:
+            self._get_usbvm_devices()
+            with open(FWUPD_USBVM_LOG) as usbvm_device_info:
+                self._parse_usbvm_updates(usbvm_device_info.read())
+            update_dict = {
+                "usbvm": self.usbvm_updates_list,
+                "adminvm": self.dom0_updates_list
+            }
+            ret_input = self._user_input(update_dict, usbvm=True)
+        else:
+            update_dict = {
+                "adminvm": self.dom0_updates_list
+            }
+            ret_input = self._user_input(update_dict)
         if ret_input == EXIT_CODES["NO_UPDATES"]:
             exit(EXIT_CODES["NO_UPDATES"])
         key, choice = ret_input
@@ -601,7 +624,7 @@ class QubesFwupdmgr:
             self._install_usbvm_firmware_update(arch_name)
 
     def _parse_downgrades(self, device_list):
-        """Parses informations about possible downgrades
+        """Parses informations about possible downgrades.
 
          Keywords argument:
         device_list -- list of connected devices
@@ -645,50 +668,64 @@ class QubesFwupdmgr:
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Firmware downgrade failed")
 
-    def downgrade_firmware(self):
-        """Downgrades firmware of the specified device."""
+    def downgrade_firmware(self, usbvm=False):
+        """Downgrades firmware of the specified device.
+
+        Keyword arguments:
+        usbvm -- sys-usb support
+        """
         self._get_dom0_devices()
         dom0_downgrades = self._parse_downgrades(self.dom0_devices_info)
-        self._get_usbvm_devices()
-        with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-            usbvm_downgrades = self._parse_downgrades(usbvm_device_info.read())
-        if len(dom0_downgrades + usbvm_downgrades) != 0:
+        if usbvm:
+            self._get_usbvm_devices()
+            with open(FWUPD_USBVM_LOG) as usbvm_device_info:
+                usbvm_downgrades = self._parse_downgrades(
+                    usbvm_device_info.read()
+                )
             downgrade_dict = {
                 "usbvm": usbvm_downgrades,
                 "adminvm": dom0_downgrades
             }
-            ret_input = self._user_input(downgrade_dict, downgrade=True)
-            if ret_input == EXIT_CODES["NO_UPDATES"]:
-                exit(EXIT_CODES["NO_UPDATES"])
-            key, device_choice, downgrade_choice = ret_input
-            releases = downgrade_dict[key][device_choice]["Releases"]
-            downgrade_url = releases[downgrade_choice]["Url"]
-            downgrade_sha = releases[downgrade_choice]["Checksum"]
-            self._download_firmware_updates(
-                downgrade_url,
-                downgrade_sha
+            ret_input = self._user_input(
+                downgrade_dict,
+                downgrade=True,
+                usbvm=True
             )
-            arch_name = downgrade_url.replace(FWUPD_DOWNLOAD_PREFIX, "")
-            arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, arch_name)
-            if downgrade_dict[key][device_choice]["Name"] == "System Firmware":
-                path = arch_path.replace(".cab", "")
-                self._verify_dmi(
-                    path,
-                    downgrade_dict[key][device_choice]["Version"],
-                    downgrade=True
-                )
-            if key == "adminvm":
-                self._install_dom0_firmware_downgrade(arch_path)
-            if key == "usbvm":
-                self._validate_usbvm_dirs()
-                self._copy_firmware_updates(arch_name)
-                self._validate_usbvm_archive(arch_name, downgrade_sha)
-                self._install_usbvm_firmware_downgrade(arch_name)
-            else:
-                print("No downgrades avaible")
+        else:
+            downgrade_dict = {
+                "adminvm": dom0_downgrades
+            }
+            ret_input = self._user_input(downgrade_dict, downgrade=True)
+        if ret_input == EXIT_CODES["NO_UPDATES"]:
+            exit(EXIT_CODES["NO_UPDATES"])
+        key, device_choice, downgrade_choice = ret_input
+        releases = downgrade_dict[key][device_choice]["Releases"]
+        downgrade_url = releases[downgrade_choice]["Url"]
+        downgrade_sha = releases[downgrade_choice]["Checksum"]
+        self._download_firmware_updates(
+            downgrade_url,
+            downgrade_sha
+        )
+        arch_name = downgrade_url.replace(FWUPD_DOWNLOAD_PREFIX, "")
+        arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, arch_name)
+        if downgrade_dict[key][device_choice]["Name"] == "System Firmware":
+            path = arch_path.replace(".cab", "")
+            self._verify_dmi(
+                path,
+                downgrade_dict[key][device_choice]["Version"],
+                downgrade=True
+            )
+        if key == "adminvm":
+            self._install_dom0_firmware_downgrade(arch_path)
+        if key == "usbvm":
+            self._validate_usbvm_dirs()
+            self._copy_firmware_updates(arch_name)
+            self._validate_usbvm_archive(arch_name, downgrade_sha)
+            self._install_usbvm_firmware_downgrade(arch_name)
 
     def _output_crawler(self, updev_dict, level, help_f=False, dom0=True):
         """Prints device and updates informations as a tree.
+
         Keywords arguments:
         updev_dict -- update/device information dictionary
         level -- level of the tree
@@ -783,35 +820,50 @@ class QubesFwupdmgr:
                 print("No updates available.")
                 return EXIT_CODES["NO_UPDATES"]
 
-    def get_devices_qubes(self):
-        """Gathers and prints devices information."""
+    def get_devices_qubes(self, usbvm=False):
+        """Gathers and prints devices information.
+
+        Keyword arguments:
+        usbvm -- sys-usb support
+        """
         self._get_dom0_devices()
-        self._get_usbvm_devices()
-        with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-            usbvm_device_info_dict = json.loads(usbvm_device_info.read())
         dom0_devices_info_dict = json.loads(self.dom0_devices_info)
         self._output_crawler(dom0_devices_info_dict, 0)
-        self._output_crawler(usbvm_device_info_dict, 0, dom0=False)
+        if usbvm:
+            self._get_usbvm_devices()
+            with open(FWUPD_USBVM_LOG) as usbvm_device_info:
+                usbvm_device_info_dict = json.loads(usbvm_device_info.read())
+            self._output_crawler(usbvm_device_info_dict, 0, dom0=False)
 
-    def get_updates_qubes(self):
-        """Gathers and prints updates information."""
+    def get_updates_qubes(self, usbvm=False):
+        """Gathers and prints updates information.
+
+        Keyword arguments:
+        usbvm -- sys-usb support
+        """
         self._get_dom0_updates()
-        self._get_usbvm_devices()
-        with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-            self._parse_usbvm_updates(usbvm_device_info.read())
         self._parse_dom0_updates_info(self.dom0_updates_info)
         self._updates_crawler(self.dom0_updates_list)
-        self._updates_crawler(self.usbvm_updates_list, adminVM=False)
+        if usbvm:
+            self._get_usbvm_devices()
+            with open(FWUPD_USBVM_LOG) as usbvm_device_info:
+                self._parse_usbvm_updates(usbvm_device_info.read())
+            self._updates_crawler(self.usbvm_updates_list, adminVM=False)
 
-    def clean_cache(self):
-        """Removes updates data"""
+    def clean_cache(self, usbvm=False):
+        """Removes updates data
+
+        Keyword arguments:
+        usbvm -- sys-usb support
+        """
         print("Cleaning dom0 cache directories")
         if os.path.exists(FWUPD_DOM0_METADATA_DIR):
             shutil.rmtree(FWUPD_DOM0_METADATA_DIR)
         if os.path.exists(FWUPD_DOM0_UPDATES_DIR):
             shutil.rmtree(FWUPD_DOM0_UPDATES_DIR)
         print("Cleaning usbvm cache directories")
-        self._clean_usbvm()
+        if usbvm:
+            self._clean_usbvm()
 
     def help(self):
         """Prints help informations"""
@@ -823,18 +875,19 @@ def main():
         print("You need to have root privileges to run this script.\n")
         exit(EXIT_CODES["ERROR"])
     q = QubesFwupdmgr()
+    sys_usb = "--sys-usb" in sys.argv
     if len(sys.argv) < 2:
         q.help()
     elif sys.argv[1] == "get-updates":
-        q.get_updates_qubes()
+        q.get_updates_qubes(usbvm=sys_usb)
     elif sys.argv[1] == "get-devices":
-        q.get_devices_qubes()
+        q.get_devices_qubes(usbvm=sys_usb)
     elif sys.argv[1] == "refresh":
-        q.refresh_metadata()
+        q.refresh_metadata(usbvm=sys_usb)
     elif sys.argv[1] == "update":
-        q.update_firmware()
+        q.update_firmware(usbvm=sys_usb)
     elif sys.argv[1] == "downgrade":
-        q.downgrade_firmware()
+        q.downgrade_firmware(usbvm=sys_usb)
     elif sys.argv[1] == "clean":
         q.clean_cache()
     else:
