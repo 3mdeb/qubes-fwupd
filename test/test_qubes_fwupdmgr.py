@@ -36,10 +36,28 @@ FWUPD_USBVM_METADATA_FILE = path.join(
     FWUPD_USBVM_METADATA_DIR,
     "firmware.xml.gz"
 )
-REQUIRED_DEV = "Required device not connected"
+REQUIRED_DEV = "Requires device not connected"
+REQUIRED_USBVM = "Requires sys-usb"
+
+
+def check_usbvm():
+    """Checks if sys-usb is running"""
+    if 'qubes' not in platform.release():
+        return False
+    cmd_xl_list = [
+        "xl",
+        "list"
+    ]
+    p = subprocess.Popen(
+            cmd_xl_list,
+            stdout=subprocess.PIPE
+        )
+    output = p.communicate()[0].decode()
+    return "sys-usb" in output
 
 
 def device_connected_dom0():
+    """Checks if the testing device is connected in dom0"""
     if 'qubes' not in platform.release():
         return False
     q = qfwupd.QubesFwupdmgr()
@@ -48,7 +66,8 @@ def device_connected_dom0():
 
 
 def device_connected_usbvm():
-    if 'qubes' not in platform.release():
+    """Checks if the testing device is connected in usbvm"""
+    if not check_usbvm():
         return False
     q = qfwupd.QubesFwupdmgr()
     q._get_usbvm_devices()
@@ -63,7 +82,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.captured_output = io.StringIO()
         sys.stdout = self.captured_output
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_download_metadata(self):
         self.q._download_metadata()
         self.assertTrue(
@@ -75,8 +94,17 @@ class TestQubesFwupdmgr(unittest.TestCase):
             msg="Metadata signature does not exist",
         )
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
-    def test_refresh_metadata(self):
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
+    def test_refresh_metadata_dom0(self):
+        self.q.refresh_metadata()
+        self.assertEqual(
+            self.q.output,
+            'Successfully refreshed metadata manually\n',
+            msg="Metadata refresh failed."
+        )
+
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
+    def test_refresh_metadata_usbvm(self):
         self.q.refresh_metadata(usbvm=True)
         self.assertEqual(
             self.q.output,
@@ -84,7 +112,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             msg="Metadata refresh failed."
         )
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_get_dom0_updates(self):
         self.q._get_dom0_updates()
         self.assertTrue(
@@ -115,7 +143,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             msg="Wrong checksum"
         )
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_download_firmware_updates(self):
         self.q._download_firmware_updates(
             "https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab",
@@ -144,7 +172,8 @@ class TestQubesFwupdmgr(unittest.TestCase):
             }
             choice = self.q._user_input(
                 downgrade_dict,
-                usbvm=True)
+                usbvm=True
+            )
         self.assertEqual(choice, 99)
         user_input = ['sth', 'N']
         with patch('builtins.input', side_effect=user_input):
@@ -200,13 +229,13 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "2.0.7"
         )
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_clean_cache_dom0(self):
         self.q.clean_cache()
         self.assertFalse(path.exists(FWUPD_DOM0_METADATA_DIR))
         self.assertFalse(path.exists(FWUPD_DOM0_UNTRUSTED_DIR))
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_clean_cache_dom0_n_usbvm(self):
         self.q._validate_usbvm_dirs()
         self.q.clean_cache(usbvm=True)
@@ -252,12 +281,12 @@ class TestQubesFwupdmgr(unittest.TestCase):
             )
         sys.stdout = self.captured_output
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_get_dom0_devices(self):
         self.q._get_dom0_devices()
         self.assertIsNotNone(self.q.dom0_devices_info)
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_get_devices_qubes_dom0(self):
         get_devices_output = io.StringIO()
         sys.stdout = get_devices_output
@@ -265,7 +294,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.assertNotEqual(get_devices_output.getvalue().strip(), "")
         sys.stdout = self.captured_output
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_get_devices_qubes_usbvm(self):
         get_devices_output = io.StringIO()
         sys.stdout = get_devices_output
@@ -522,7 +551,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             ver.LooseVersion(old_version) < ver.LooseVersion(new_version)
         )
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_get_usbvm_devices(self):
         self.q._get_usbvm_devices()
         self.assertTrue(path.exists(FWUPD_USBVM_LOG))
@@ -560,7 +589,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             )
         sys.stdout = self.captured_output
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_validate_usbvm_dirs(self):
         self.q._validate_usbvm_dirs()
         cmd_validate_metadata = [
@@ -592,7 +621,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             msg="Creating update directory failed"
         )
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_copy_metadata(self):
         self.q._download_metadata()
         self.q._validate_usbvm_dirs()
@@ -626,14 +655,14 @@ class TestQubesFwupdmgr(unittest.TestCase):
             msg="Metadata signature does not exist"
         )
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_validate_usbvm_metadata(self):
         self.q._download_metadata()
         self.q._validate_usbvm_dirs()
         self.q._copy_metadata()
         self.q._validate_usbvm_metadata()
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_refresh_usbvm_metadata(self):
         self.q._download_metadata()
         self.q._validate_usbvm_dirs()
@@ -641,7 +670,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.q._validate_usbvm_metadata()
         self.q._refresh_usbvm_metadata()
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_clean_usbvm(self):
         self.q._validate_usbvm_dirs()
         self.q._clean_usbvm()
@@ -674,7 +703,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             msg="Cleaning update directory failed"
         )
 
-    @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_validate_usbvm_archive(self):
         url = "https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab"
         sha = "490be5c0b13ca4a3f169bf8bc682ba127b8f7b96"
