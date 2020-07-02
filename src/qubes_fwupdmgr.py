@@ -863,8 +863,8 @@ class QubesFwupdmgr:
             shutil.rmtree(FWUPD_DOM0_METADATA_DIR)
         if os.path.exists(FWUPD_DOM0_UPDATES_DIR):
             shutil.rmtree(FWUPD_DOM0_UPDATES_DIR)
-        print("Cleaning usbvm cache directories")
         if usbvm:
+            print("Cleaning usbvm cache directories")
             self._clean_usbvm()
 
     def help(self):
@@ -891,7 +891,7 @@ def main():
     elif sys.argv[1] == "downgrade":
         q.downgrade_firmware(usbvm=sys_usb)
     elif sys.argv[1] == "clean":
-        q.clean_cache()
+        q.clean_cache(usbvm=sys_usb)
     else:
         q.help()
 
