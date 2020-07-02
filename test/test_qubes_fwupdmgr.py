@@ -519,7 +519,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         if new_version is None:
             self.fail("Test device not found")
         self.assertTrue(
-            ver.LooseVersion(old_version) > ver.LooseVersion(new_version)
+            ver.LooseVersion(old_version) < ver.LooseVersion(new_version)
         )
 
     @unittest.skipUnless('qubes' in platform.release(), "requires Qubes OS")
