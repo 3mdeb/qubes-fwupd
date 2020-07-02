@@ -7,9 +7,6 @@ Usage:
 	update:				Updates chosen device to latest firmware version
 	downgrade:			Downgrade chosen device to chosen firmware version
 	clean:				Deletes all cached update files
-Flags:				
-======================================================================
-	--sys-usb:			Search devices in sys-usb VM
 Help:				
 ======================================================================
 	-h --help:			Show help options

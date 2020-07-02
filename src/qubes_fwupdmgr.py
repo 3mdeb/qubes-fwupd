@@ -72,11 +72,6 @@ HELP = {
             "clean": "Deletes all cached update files"
         }
     ],
-    "Flags": [
-        {
-            "--sys-usb": "Search devices in sys-usb VM"
-        }
-    ],
     "Help": [
         {
             "-h --help": "Show help options"
@@ -870,13 +865,28 @@ class QubesFwupdmgr:
         """Prints help information"""
         self._output_crawler(HELP, 0, help_f=True)
 
+    def check_usbvm(self):
+        """Checks if sys-usb is running"""
+        cmd_xl_list = [
+            "xl",
+            "list"
+        ]
+        p = subprocess.Popen(
+                cmd_xl_list,
+                stdout=subprocess.PIPE
+            )
+        self.output = p.communicate()[0].decode()
+        if p.returncode != 0:
+            raise Exception("fwudp-qubes: Firmware downgrade failed")
+        return "sys-usb" in self.output
+
 
 def main():
     if os.geteuid() != 0:
         print("You need to have root privileges to run this script.\n")
         exit(EXIT_CODES["ERROR"])
     q = QubesFwupdmgr()
-    sys_usb = "--sys-usb" in sys.argv
+    sys_usb = q.check_usbvm()
     if len(sys.argv) < 2:
         q.help()
     elif sys.argv[1] == "get-updates":

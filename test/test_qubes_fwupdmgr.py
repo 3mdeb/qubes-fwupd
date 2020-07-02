@@ -38,22 +38,16 @@ FWUPD_USBVM_METADATA_FILE = path.join(
 )
 REQUIRED_DEV = "Requires device not connected"
 REQUIRED_USBVM = "Requires sys-usb"
+XL_LIST_LOG = "Name                                        ID   Mem VCPUs	State	Time(s)"
 
 
 def check_usbvm():
     """Checks if sys-usb is running"""
     if 'qubes' not in platform.release():
         return False
-    cmd_xl_list = [
-        "xl",
-        "list"
-    ]
-    p = subprocess.Popen(
-            cmd_xl_list,
-            stdout=subprocess.PIPE
-        )
-    output = p.communicate()[0].decode()
-    return "sys-usb" in output
+    q = qfwupd.QubesFwupdmgr()
+    q.check_usbvm()
+    return "sys-usb" in q.output
 
 
 def device_connected_dom0():
@@ -735,6 +729,11 @@ class TestQubesFwupdmgr(unittest.TestCase):
             0,
             msg="Archive validation failed"
         )
+
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
+    def test_check_usbvm(self):
+        self.q.check_usbvm()
+        self.assertTrue(XL_LIST_LOG in self.q.output)
 
 
 if __name__ == '__main__':
