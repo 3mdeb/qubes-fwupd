@@ -346,7 +346,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.q._get_dom0_devices()
         downgrades = self.q._parse_downgrades(self.q.dom0_devices_info)
         for number, device in enumerate(downgrades):
-            if "Name" in device:
+            if "Name" not in device:
                 continue
             if device["Name"] == "ColorHug2":
                 old_version = device["Version"]
@@ -370,7 +370,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
             downgrades = self.q._parse_downgrades(usbvm_device_info.read())
             for number, device in enumerate(downgrades):
-                if "Name" in device:
+                if "Name" not in device:
                     continue
                 if device["Name"] == "ColorHug2":
                     old_version = device["Version"]
@@ -465,7 +465,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.q._get_dom0_updates()
         self.q._parse_dom0_updates_info(self.q.dom0_updates_info)
         for number, device in enumerate(self.q.dom0_updates_list):
-            if "Name" in device:
+            if "Name" not in device:
                 continue
             if device["Name"] == "ColorHug2":
                 old_version = device["Version"]
@@ -478,7 +478,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.q._get_dom0_devices()
         dom0_devices_info_dict = json.loads(self.q.dom0_devices_info)
         for device in dom0_devices_info_dict["Devices"]:
-            if "Name" in device:
+            if "Name" not in device:
                 continue
             if device["Name"] == "ColorHug2":
                 new_version = device["Version"]
@@ -497,7 +497,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
             self.q._parse_usbvm_updates(usbvm_device_info.read())
             for number, device in enumerate(self.q.usbvm_updates_list):
-                if "Name" in device:
+                if "Name" not in device:
                     continue
                 if device["Name"] == "ColorHug2":
                     old_version = device["Version"]
@@ -511,7 +511,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
             usbvm_devices_info_dict = json.loads(usbvm_device_info.read())
         for device in usbvm_devices_info_dict["Devices"]:
-            if "Name" in device:
+            if "Name" not in device:
                 continue
             if device["Name"] == "ColorHug2":
                 new_version = device["Version"]
