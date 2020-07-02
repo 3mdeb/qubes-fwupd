@@ -274,12 +274,11 @@ class QubesFwupdmgr:
         usbvm -- sys-usb support
         """
         self._download_metadata()
-        # sys-usb refresh
-        self._validate_usbvm_dirs()
-        self._copy_metadata()
-        self._validate_usbvm_metadata()
-        self._refresh_usbvm_metadata()
-        # dom0 refresh
+        if usbvm:
+            self._validate_usbvm_dirs()
+            self._copy_metadata()
+            self._validate_usbvm_metadata()
+            self._refresh_usbvm_metadata()
         cmd_refresh = [
             FWUPDMGR,
             "refresh",
@@ -313,10 +312,10 @@ class QubesFwupdmgr:
             raise Exception("fwudp-qubes: Getting available updates failed")
 
     def _parse_dom0_updates_info(self, updates_info):
-        """Creates dictionary and list with informations about updates.
+        """Creates dictionary and list with information about updates.
 
         Keywords argument:
-        updates_info - gathered update informations
+        updates_info - gathered update information
         """
         self.dom0_updates_info_dict = json.loads(updates_info)
         self.dom0_updates_list = [
@@ -523,7 +522,7 @@ class QubesFwupdmgr:
                 )
 
     def _get_dom0_devices(self):
-        """Gathers informations about devices connected in dom0."""
+        """Gathers information about devices connected in dom0."""
         cmd_get_dom0_devices = [
             "/bin/fwupdagent",
             "get-devices"
@@ -537,7 +536,7 @@ class QubesFwupdmgr:
             raise Exception("fwudp-qubes: Getting devices info failed")
 
     def _get_usbvm_devices(self):
-        """Gathers informations about devices connected in sys-usb."""
+        """Gathers information about devices connected in sys-usb."""
         if os.path.exists(FWUPD_USBVM_LOG):
             os.remove(FWUPD_USBVM_LOG)
         usbvm_cmd = '"/usr/libexec/fwupd/fwupdagent get-devices"'
@@ -556,10 +555,10 @@ class QubesFwupdmgr:
             raise Exception("sys-usb device info log does not exist")
 
     def _parse_usbvm_updates(self, usbvm_devices_info):
-        """Creates dictionary and list with informations about updates.
+        """Creates dictionary and list with information about updates.
 
         Keywords argument:
-        usbvm_devices_info - gathered usbvm informations
+        usbvm_devices_info - gathered usbvm information
         """
         self.usbvm_updates_list = []
         usbvm_device_info_dict = json.loads(usbvm_devices_info)
@@ -626,7 +625,7 @@ class QubesFwupdmgr:
             self._install_usbvm_firmware_update(arch_name)
 
     def _parse_downgrades(self, device_list):
-        """Parses informations about possible downgrades.
+        """Parses information about possible downgrades.
 
          Keywords argument:
         device_list -- list of connected devices
@@ -726,7 +725,7 @@ class QubesFwupdmgr:
             self._install_usbvm_firmware_downgrade(arch_name)
 
     def _output_crawler(self, updev_dict, level, help_f=False, dom0=True):
-        """Prints device and updates informations as a tree.
+        """Prints device and updates information as a tree.
 
         Keywords arguments:
         updev_dict -- update/device information dictionary
@@ -773,7 +772,7 @@ class QubesFwupdmgr:
                     self._output_crawler(nested_dict, level+1)
 
     def _updates_crawler(self, updates_list, adminVM=True, prefix=0):
-        """Prints updates informations for dom0 and sys-usb
+        """Prints updates information for dom0 and sys-usb
 
         Keywords arguments:
         updates_list -- list of devices updates
@@ -868,7 +867,7 @@ class QubesFwupdmgr:
             self._clean_usbvm()
 
     def help(self):
-        """Prints help informations"""
+        """Prints help information"""
         self._output_crawler(HELP, 0, help_f=True)
 
 
