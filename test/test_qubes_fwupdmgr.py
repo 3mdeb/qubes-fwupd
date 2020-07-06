@@ -152,7 +152,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_user_input_empty_dict(self):
         downgrade_dict = {
                 "usbvm": [],
-                "adminvm": []
+                "dom0": []
             }
         self.assertEqual(self.q._user_input(downgrade_dict), 99)
 
@@ -162,7 +162,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             self.q._parse_dom0_updates_info(UPDATE_INFO)
             downgrade_dict = {
                 "usbvm": self.q.dom0_updates_list,
-                "adminvm": self.q.dom0_updates_list
+                "dom0": self.q.dom0_updates_list
             }
             choice = self.q._user_input(
                 downgrade_dict,
@@ -174,7 +174,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             self.q._parse_dom0_updates_info(UPDATE_INFO)
             downgrade_dict = {
                 "usbvm": self.q.dom0_updates_list,
-                "adminvm": self.q.dom0_updates_list
+                "dom0": self.q.dom0_updates_list
             }
             choice = self.q._user_input(
                 downgrade_dict,
@@ -188,10 +188,10 @@ class TestQubesFwupdmgr(unittest.TestCase):
             self.q._parse_dom0_updates_info(UPDATE_INFO)
             updates_dict = {
                 "usbvm": self.q.dom0_updates_list,
-                "adminvm": self.q.dom0_updates_list
+                "dom0": self.q.dom0_updates_list
             }
             key, choice = self.q._user_input(updates_dict)
-        self.assertEqual(key, "adminvm")
+        self.assertEqual(key, "dom0")
         self.assertEqual(choice, 0)
 
     def test_user_input_choice_usbvm(self):
@@ -200,7 +200,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             self.q._parse_dom0_updates_info(UPDATE_INFO)
             updates_dict = {
                 "usbvm": self.q.dom0_updates_list,
-                "adminvm": self.q.dom0_updates_list
+                "dom0": self.q.dom0_updates_list
             }
             key, choice = self.q._user_input(updates_dict, usbvm=True)
         self.assertEqual(key, "usbvm")
@@ -208,8 +208,8 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     def test_parse_parameters(self):
         self.q._parse_dom0_updates_info(UPDATE_INFO)
-        update_dict = {"adminvm": self.q.dom0_updates_list}
-        self.q._parse_parameters(update_dict, "adminvm", 0)
+        update_dict = {"dom0": self.q.dom0_updates_list}
+        self.q._parse_parameters(update_dict, "dom0", 0)
         self.assertEqual(
             self.q.url,
             "https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab"
@@ -440,7 +440,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             downgrade_list = self.q._parse_downgrades(GET_DEVICES)
             downgrade_dict = {
                 "usbvm": downgrade_list,
-                "adminvm": downgrade_list
+                "dom0": downgrade_list
             }
             key, device_choice, downgrade_choice = self.q._user_input(
                 downgrade_dict,
@@ -456,13 +456,13 @@ class TestQubesFwupdmgr(unittest.TestCase):
         with patch('builtins.input', side_effect=user_input):
             downgrade_list = self.q._parse_downgrades(GET_DEVICES)
             downgrade_dict = {
-                "adminvm": downgrade_list
+                "dom0": downgrade_list
             }
             key, device_choice, downgrade_choice = self.q._user_input(
                 downgrade_dict,
                 downgrade=True,
             )
-        self.assertEqual(key, "adminvm")
+        self.assertEqual(key, "dom0")
         self.assertEqual(device_choice, 0)
         self.assertEqual(downgrade_choice, 1)
 
@@ -472,7 +472,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             downgrade_list = self.q._parse_downgrades(GET_DEVICES)
             downgrade_dict = {
                 "usbvm": downgrade_list,
-                "adminvm": downgrade_list
+                "dom0": downgrade_list
             }
             N_choice = self.q._user_input(
                 downgrade_dict,
@@ -575,7 +575,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         crawler_output = io.StringIO()
         sys.stdout = crawler_output
         self.q._parse_usbvm_updates(GET_DEVICES)
-        self.q._updates_crawler(self.q.usbvm_updates_list, adminVM=False)
+        self.q._updates_crawler(self.q.usbvm_updates_list, usbvm=True)
         with open("test/logs/get_updates.log", "r") as getupdates:
             self.assertEqual(
                 getupdates.read(),
@@ -616,10 +616,10 @@ class TestQubesFwupdmgr(unittest.TestCase):
         )
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
-    def test_copy_metadata(self):
+    def test_copy_usbvm_metadata(self):
         self.q._download_metadata()
         self.q._validate_usbvm_dirs()
-        self.q._copy_metadata()
+        self.q._copy_usbvm_metadata()
         cmd_validate_metadata_file = [
             "qvm-run",
             "--pass-io",
@@ -653,14 +653,14 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_validate_usbvm_metadata(self):
         self.q._download_metadata()
         self.q._validate_usbvm_dirs()
-        self.q._copy_metadata()
+        self.q._copy_usbvm_metadata()
         self.q._validate_usbvm_metadata()
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_refresh_usbvm_metadata(self):
         self.q._download_metadata()
         self.q._validate_usbvm_dirs()
-        self.q._copy_metadata()
+        self.q._copy_usbvm_metadata()
         self.q._validate_usbvm_metadata()
         self.q._refresh_usbvm_metadata()
 
