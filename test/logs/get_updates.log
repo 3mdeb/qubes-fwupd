@@ -1,0 +1,15 @@
+======================================================
+sys-usb updates:
+======================================================
+Available updates:
+======================================================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1. Device: ColorHug2
+   Current firmware version:	 2.0.6
+======================================================
+   Firmware update version:	 2.0.7
+   URL:	 https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab
+   SHA1 checksum:	 490be5c0b13ca4a3f169bf8bc682ba127b8f7b96
+   Description: This release fixes prevents the firmware returning an error when the remote SHA1 hash was never sent.
+	
+======================================================
