@@ -24,8 +24,10 @@ find_regex_in_args() {
 }
 
 UPDATEVM=`qubes-prefs --force-root updatevm`
+FWUPD_DOM0_RECEIVE="/usr/share/qubes-fwupd/src/./fwupd_receive_updates.py"
 FWUPD_DOM0_DIR=/root/.cache/fwupd
 FWUPD_UPDATEVM_DIR=/home/user/.cache/fwupd
+FWUPD_UPDATEVM_SCRIPT="/usr/share/qubes-fwupd/fwupd-download-updates.sh"
 
 if [ -z "$UPDATEVM" ]; then
     echo "UpdateVM not set, exiting"
@@ -111,27 +113,26 @@ qvm-run --nogui -q -u root $UPDATEVM "mkdir -m 775 -p $FWUPD_UPDATEVM_DIR/update
 qvm-run --nogui -q -u root $UPDATEVM "chown -R user:user $FWUPD_UPDATEVM_DIR" || exit 1
 
 # Setup fwupd-download-updates commandline
-FW_UPDATE_SCRIPT="/usr/lib/qubes-fwupd/fwupd-download-updates.sh"
 if [ "$METADATA" == 1 ]; then
     rm -rf $FWUPD_DOM0_DIR/metadata
-    FW_UPDATE_SCRIPT_ARGS="--metadata"
-    FW_RECIVE_ARGS="metadata"
+    FWUPD_UPDATEVM_SCRIPT_ARGS="--metadata"
+    FWUPD_DOM0_RECEIVE_ARGS="metadata"
 elif [ "$UPDATE" == 1 ]; then
     FW_DIR=$FWUPD_DOM0_DIR/updates/$FW_NAME
     if [ -d "${FW_DIR::-4}" ]; then
         echo "Firmware already downloaded. Using cached files." >&2
         exit 0
     else
-        FW_UPDATE_SCRIPT_ARGS="--url=$URL --sha=$SHASUM"
-        FW_RECIVE_ARGS="update $SHASUM $FW_NAME"
+        FWUPD_UPDATEVM_SCRIPT_ARGS="--url=$URL --sha=$SHASUM"
+        FWUPD_DOM0_RECEIVE_ARGS="update $SHASUM $FW_NAME"
     fi
 fi
 
 # Use 'script' to fake a terminal, so that we are shown sync and download
 # progress indicators. However, do it only if we are running in terminal
 # ourselves.
-CMD="script --quiet --return --command '$FW_UPDATE_SCRIPT \
-    $FW_UPDATE_SCRIPT_ARGS' /dev/null"
+CMD="script --quiet --return --command '$FWUPD_UPDATEVM_SCRIPT \
+    $FWUPD_UPDATEVM_SCRIPT_ARGS' /dev/null"
 qvm-run --nogui --pass-io $UPDATEVM "$CMD"
 
 RETCODE=$?
@@ -140,7 +141,7 @@ if [ "$RETCODE" -ne 0 ]; then
 fi
 
 # Wait for download completed
-/usr/libexec/qubes/./fwupd-receive-updates $UPDATEVM $FW_RECIVE_ARGS
+$FWUPD_DOM0_RECEIVE $UPDATEVM $FWUPD_DOM0_RECEIVE_ARGS
 
 if [ "$?" -ne 0 ]; then
     echo "*** ERROR while receiving fwupd updates"

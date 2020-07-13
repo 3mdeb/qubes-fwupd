@@ -1,0 +1,29 @@
+%define FWUPD_QUBES_DIR /usr/share/qubes-fwupd
+
+Name: qubes-fwupd-vm
+Version: @VERSION@
+Release: @REL@%{?dist}
+
+Summary: fwupd wrapper for Qubes OS - VM scripts
+License: GPLv2+
+URL: https://www.qubes-os.org/
+
+Requires:   cabextract
+
+Source0: %{name}-%{version}.tar.gz
+
+%description
+fwupd wrapper for Qubes OS
+
+%prep
+%setup -q
+
+%install
+make install-vm DESTDIR=$RPM_BUILD_ROOT
+
+%files
+%FWUPD_QUBES_DIR/fwupd-download-updates.sh
+%FWUPD_QUBES_DIR/fwupd_usbvm_validate.py
+
+%changelog
+@CHANGELOG@
