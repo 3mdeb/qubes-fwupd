@@ -135,11 +135,11 @@ class FwupdReceiveUpdates:
                 os.mkdir(file_path)
                 os.chown(file_path, -1, qubes_gid)
                 os.chmod(file_path, 0o0775)
-            elif os.stat(file_path) != qubes_gid:
+            elif os.stat(file_path).st_gid != qubes_gid:
                 print(
                     WARNING_COLOR +
                     "Warning: You should move a personal files from %s. "
-                    % 'test.py' +
+                    % file_path +
                     "Cleaning cache will cause lose of the personal data!!" +
                     WARNING_COLOR
                 )
