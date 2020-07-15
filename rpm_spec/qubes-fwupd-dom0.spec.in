@@ -9,6 +9,7 @@ License: GPLv2+
 URL: https://www.qubes-os.org/
 
 Requires:   cabextract
+Requires:   fwupd
 
 Source0: %{name}-%{version}.tar.gz
 

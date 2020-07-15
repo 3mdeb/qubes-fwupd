@@ -1,4 +1,5 @@
 %define FWUPD_QUBES_DIR /usr/share/qubes-fwupd
+%define PKI /etc/pki/fwupd
 
 Name: qubes-fwupd-vm
 Version: @VERSION@
@@ -9,6 +10,8 @@ License: GPLv2+
 URL: https://www.qubes-os.org/
 
 Requires:   cabextract
+Requires:   fwupd
+Requires:   gpg
 
 Source0: %{name}-%{version}.tar.gz
 
@@ -20,6 +23,9 @@ fwupd wrapper for Qubes OS
 
 %install
 make install-vm DESTDIR=$RPM_BUILD_ROOT
+
+%post
+gpg --import %PKI/GPG-KEY-Linux-Vendor-Firmware-Servive
 
 %files
 %FWUPD_QUBES_DIR/fwupd-download-updates.sh
