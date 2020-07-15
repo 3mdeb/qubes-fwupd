@@ -9,7 +9,7 @@ import sys
 import io
 import platform
 from test.fwupd_logs import UPDATE_INFO, GET_DEVICES, DMI_DECODE
-from test.fwupd_logs import GET_DEVICES_NO_UPDATES
+from test.fwupd_logs import GET_DEVICES_NO_UPDATES, GET_DEVICES_NO_VERSION
 from unittest.mock import patch
 
 FWUPD_DOM0_DIR = "/root/.cache/fwupd"
@@ -64,6 +64,9 @@ def device_connected_usbvm():
     if not check_usbvm():
         return False
     q = qfwupd.QubesFwupdmgr()
+    q._validate_usbvm_dirs()
+    if not path.exists(FWUPD_DOM0_DIR):
+        q.refresh_metadata()
     q._get_usbvm_devices()
     with open(FWUPD_USBVM_LOG) as usbvm_device_info:
         return "ColorHug2" in usbvm_device_info.read()
@@ -413,6 +416,29 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     def test_parse_downgrades(self):
         downgrades = self.q._parse_downgrades(GET_DEVICES)
+        self.assertEqual(
+            downgrades[0]["Name"],
+            "ColorHug2"
+        )
+        self.assertEqual(
+            downgrades[0]["Version"],
+            "2.0.6"
+        )
+        self.assertEqual(
+            downgrades[0]["Releases"][0]["Version"],
+            "2.0.5"
+        )
+        self.assertEqual(
+            downgrades[0]["Releases"][0]["Url"],
+            "https://fwupd.org/downloads/f7dd4ab29fa610438571b8b62b26b0b0e57bb35b-hughski-colorhug2-2.0.5.cab"
+        )
+        self.assertEqual(
+            downgrades[0]["Releases"][0]["Checksum"],
+            "4ee9dfa38df3b810f739d8a19d13da1b3175fb87"
+        )
+
+    def test_parse_downgrades_no_version(self):
+        downgrades = self.q._parse_downgrades(GET_DEVICES_NO_VERSION)
         self.assertEqual(
             downgrades[0]["Name"],
             "ColorHug2"

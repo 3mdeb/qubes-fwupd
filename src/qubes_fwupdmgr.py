@@ -638,7 +638,10 @@ class QubesFwupdmgr:
         dom0_devices_info_dict = json.loads(device_list)
         for device in dom0_devices_info_dict["Devices"]:
             if "Releases" in device:
-                version = device["Version"]
+                try:
+                    version = device["Version"]
+                except KeyError:
+                    continue
                 downgrades.append(
                     {
                         "Name": device["Name"],
