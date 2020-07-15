@@ -896,6 +896,8 @@ def main():
         exit(EXIT_CODES["ERROR"])
     q = QubesFwupdmgr()
     sys_usb = q.check_usbvm()
+    if not os.path.exists(FWUPD_DOM0_DIR):
+        q.refresh_metadata(usbvm=sys_usb)
     if len(sys.argv) < 2:
         q.help()
     elif sys.argv[1] == "get-updates":

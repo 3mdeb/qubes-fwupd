@@ -103,6 +103,7 @@ if [[ -z "$UPDATE" && -z "$METADATA" ]]; then
 fi
 
 # Set ownership
+[[ -d $FWUPD_DOM0_DIR ]] || mkdir $FWUPD_DOM0_DIR
 chown -R root:qubes $FWUPD_DOM0_DIR
 
 echo "Using $UPDATEVM as UpdateVM to download fwupd updates for Dom0; this may take some time..." >&2
