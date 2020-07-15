@@ -1,5 +1,6 @@
 %define FWUPD_QUBES_DIR /usr/share/qubes-fwupd
 %define PKI /etc/pki/fwupd
+%define GPG_DIR /home/user/.gnupg
 
 Name: qubes-fwupd-vm
 Version: @VERSION@
@@ -25,7 +26,8 @@ fwupd wrapper for Qubes OS
 make install-vm DESTDIR=$RPM_BUILD_ROOT
 
 %post
-gpg --import %PKI/GPG-KEY-Linux-Vendor-Firmware-Servive
+gpg --homedir %GPG_DIR --import %PKI/GPG-KEY-Linux-Vendor-Firmware-Service
+chown -R user:user %GPG_DIR
 
 %files
 %FWUPD_QUBES_DIR/fwupd-download-updates.sh
