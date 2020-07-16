@@ -25,10 +25,6 @@ fwupd wrapper for Qubes OS
 %install
 make install-vm DESTDIR=$RPM_BUILD_ROOT
 
-%post
-gpg --homedir %GPG_DIR --import %PKI/GPG-KEY-Linux-Vendor-Firmware-Service
-chown -R user:user %GPG_DIR
-
 %files
 %FWUPD_QUBES_DIR/fwupd-download-updates.sh
 %FWUPD_QUBES_DIR/fwupd_usbvm_validate.py

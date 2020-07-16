@@ -27,6 +27,13 @@ make install-dom0 DESTDIR=$RPM_BUILD_ROOT
 %post
 ln -s -f %FWUPD_QUBES_DIR/src/qubes_fwupdmgr.py /bin/qubes-fwupdmgr
 gpg --import %PKI/GPG-KEY-Linux-Vendor-Firmware-Service
+if [ $(xl list sys-usb) == 0 ]; then \
+    qvm-run --pass-io sys-usb 'gpg --import %PKI/GPG-KEY-Linux-Vendor-Firmware-Service' \
+fi
+if [ $(xl list sys-firewall) == 0 ]; then \
+    qvm-run --pass-io sys-firewall 'gpg --import %PKI/GPG-KEY-Linux-Vendor-Firmware-Service' \
+fi
+
 
 %files
 %FWUPD_QUBES_DIR/src/fwupd_receive_updates.py
