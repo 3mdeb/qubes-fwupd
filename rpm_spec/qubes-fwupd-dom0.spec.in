@@ -1,0 +1,54 @@
+%define FWUPD_QUBES_DIR /usr/share/qubes-fwupd
+%define PKI /etc/pki/fwupd
+
+Name: qubes-fwupd-dom0
+Version: @VERSION@
+Release: @REL@%{?dist}
+
+Summary: fwupd wrapper for Qubes OS - dom0 scripts
+License: GPLv2+
+URL: https://www.qubes-os.org/
+
+Requires:   cabextract
+Requires:   fwupd
+Requires:   gpg
+
+Source0: %{name}-%{version}.tar.gz
+
+%description
+fwupd wrapper for Qubes OS
+
+%prep
+%setup -q
+
+%install
+make install-dom0 DESTDIR=$RPM_BUILD_ROOT
+
+%post
+ln -s -f %FWUPD_QUBES_DIR/src/qubes_fwupdmgr.py /bin/qubes-fwupdmgr
+gpg --import %PKI/GPG-KEY-Linux-Vendor-Firmware-Service
+if [ $(xl list sys-usb) == 0 ]; then \
+    qvm-run --pass-io sys-usb 'gpg --import %PKI/GPG-KEY-Linux-Vendor-Firmware-Service' \
+fi
+if [ $(xl list sys-firewall) == 0 ]; then \
+    qvm-run --pass-io sys-firewall 'gpg --import %PKI/GPG-KEY-Linux-Vendor-Firmware-Service' \
+fi
+
+
+%files
+%FWUPD_QUBES_DIR/src/fwupd_receive_updates.py
+%FWUPD_QUBES_DIR/src/qubes_fwupdmgr.py
+%FWUPD_QUBES_DIR/src/fwupd-dom0-update
+%FWUPD_QUBES_DIR/src/__init__.py
+%FWUPD_QUBES_DIR/test/fwupd_logs.py
+%FWUPD_QUBES_DIR/test/test_qubes_fwupdmgr.py
+%FWUPD_QUBES_DIR/test/__init__.py
+%FWUPD_QUBES_DIR/test/logs/get_devices.log
+%FWUPD_QUBES_DIR/test/logs/get_updates.log
+%FWUPD_QUBES_DIR/test/logs/help.log
+%FWUPD_QUBES_DIR/test/logs/firmware.metainfo.xml
+%FWUPD_QUBES_DIR/test/logs/metainfo_name/firmware.metainfo.xml
+%FWUPD_QUBES_DIR/test/logs/metainfo_version/firmware.metainfo.xml
+
+%changelog
+@CHANGELOG@

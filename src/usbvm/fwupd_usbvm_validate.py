@@ -144,6 +144,8 @@ class FwupdUsbvmUpdates:
     def validate_dirs(self):
         """Validates and creates directories"""
         print("Validating directories")
+        if not os.path.exists(FWUPD_USBVM_DIR):
+            self._create_dirs(FWUPD_USBVM_DIR)
         if os.path.exists(FWUPD_USBVM_METADATA_DIR):
             shutil.rmtree(FWUPD_USBVM_METADATA_DIR)
             self._create_dirs(FWUPD_USBVM_METADATA_DIR)

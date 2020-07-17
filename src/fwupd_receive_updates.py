@@ -135,11 +135,11 @@ class FwupdReceiveUpdates:
                 os.mkdir(file_path)
                 os.chown(file_path, -1, qubes_gid)
                 os.chmod(file_path, 0o0775)
-            elif os.stat(file_path) != qubes_gid:
+            elif os.stat(file_path).st_gid != qubes_gid:
                 print(
                     WARNING_COLOR +
                     "Warning: You should move a personal files from %s. "
-                    % 'test.py' +
+                    % file_path +
                     "Cleaning cache will cause lose of the personal data!!" +
                     WARNING_COLOR
                 )
@@ -214,11 +214,14 @@ class FwupdReceiveUpdates:
         self._check_domain(updatevm)
         self._create_dirs(FWUPD_DOM0_UPDATES_DIR, FWUPD_DOM0_UNTRUSTED_DIR)
 
-        cmd = "/usr/bin/qvm-run --pass-io "
-        cmd.join(self.source)
-        cmd.join(" 'cat %s' > " % updatevm_firmware_file_path)
-        cmd.join(dom0_firmware_untrusted_path)
-        if os.system(cmd):
+        cmd_copy = 'qvm-run --pass-io %s %s > %s' % (
+            self.source,
+            "'cat %s'" % updatevm_firmware_file_path,
+            dom0_firmware_untrusted_path
+        )
+        p = subprocess.Popen(cmd_copy, shell=True)
+        p.wait()
+        if p.returncode != 0:
             raise Exception('qvm-run: Copying firmware file failed!!')
 
         self._verify_received(
@@ -246,18 +249,26 @@ class FwupdReceiveUpdates:
         """
         self._check_domain(updatevm)
         self._create_dirs(FWUPD_DOM0_METADATA_DIR)
-
-        cmd = "/usr/bin/qvm-run --pass-io "
-        cmd.join(self.source)
-        cmd_signature = cmd.join(
-            " 'cat %s' > " % FWUPD_UPDATEVM_METADATA_SIGNATURE
+        cmd_file = "'cat %s'" % FWUPD_UPDATEVM_METADATA_FILE
+        cmd_signature = "'cat %s'" % FWUPD_UPDATEVM_METADATA_SIGNATURE
+        cmd_copy_metadata_file = 'qvm-run --pass-io %s %s > %s' % (
+            self.source,
+            cmd_file,
+            FWUPD_DOM0_METADATA_FILE
         )
-        cmd_signature.join(FWUPD_DOM0_METADATA_SIGNATURE)
-        cmd.join(" 'cat %s' > " % FWUPD_UPDATEVM_METADATA_FILE)
-        cmd.join(FWUPD_DOM0_METADATA_FILE)
-        if os.system(cmd):
+        cmd_copy_metadata_signature = 'qvm-run --pass-io %s %s > %s' % (
+            self.source,
+            cmd_signature,
+            FWUPD_DOM0_METADATA_SIGNATURE
+        )
+
+        p = subprocess.Popen(cmd_copy_metadata_file, shell=True)
+        p.wait()
+        if p.returncode != 0:
             raise Exception('qvm-run: Copying metadata file failed!!')
-        if os.system(cmd_signature):
+        p = subprocess.Popen(cmd_copy_metadata_signature, shell=True)
+        p.wait()
+        if p.returncode != 0:
             raise Exception('qvm-run": Copying metadata signature failed!!')
 
         self._verify_received(

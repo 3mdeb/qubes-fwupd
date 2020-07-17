@@ -638,7 +638,10 @@ class QubesFwupdmgr:
         dom0_devices_info_dict = json.loads(device_list)
         for device in dom0_devices_info_dict["Devices"]:
             if "Releases" in device:
-                version = device["Version"]
+                try:
+                    version = device["Version"]
+                except KeyError:
+                    continue
                 downgrades.append(
                     {
                         "Name": device["Name"],
@@ -896,6 +899,8 @@ def main():
         exit(EXIT_CODES["ERROR"])
     q = QubesFwupdmgr()
     sys_usb = q.check_usbvm()
+    if not os.path.exists(FWUPD_DOM0_DIR):
+        q.refresh_metadata(usbvm=sys_usb)
     if len(sys.argv) < 2:
         q.help()
     elif sys.argv[1] == "get-updates":
