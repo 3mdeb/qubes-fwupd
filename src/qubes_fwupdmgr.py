@@ -40,6 +40,10 @@ FWUPD_DOM0_METADATA_FILE = os.path.join(
     FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz"
 )
+FWUPD_DOM0_METADATA_JCAT = os.path.join(
+    FWUPD_DOM0_METADATA_DIR,
+    "firmware.xml.gz.jcat"
+)
 FWUPD_USBVM_LOG = os.path.join(FWUPD_DOM0_DIR, "usbvm-devices.log")
 FWUPD_USBVM_VALIDATE = "/usr/share/qubes-fwupd/fwupd_usbvm_validate.py"
 FWUPD_USBVM_DIR = "/home/user/.cache/fwupd"
@@ -52,6 +56,10 @@ FWUPD_USBVM_METADATA_SIGNATURE = os.path.join(
 FWUPD_USBVM_METADATA_FILE = os.path.join(
     FWUPD_USBVM_METADATA_DIR,
     "firmware.xml.gz"
+)
+FWUPD_USBVM_METADATA_JCAT = os.path.join(
+    FWUPD_USBVM_METADATA_DIR,
+    "firmware.xml.gz.jcat"
 )
 FWUPD_DOWNLOAD_PREFIX = "https://fwupd.org/downloads/"
 FWUPDMGR = "/bin/fwupdmgr"
@@ -151,6 +159,12 @@ class QubesFwupdmgr:
             USBVM_N,
             cat_sig
         )
+        cat_jcat = "cat > %s" % FWUPD_USBVM_METADATA_JCAT
+        cmd_copy_jcat = 'cat %s | qvm-run --nogui --pass-io %s "%s"' % (
+            FWUPD_DOM0_METADATA_JCAT,
+            USBVM_N,
+            cat_jcat
+        )
         p = subprocess.Popen(cmd_copy_file, shell=True)
         p.wait()
         if p.returncode != 0:
@@ -159,6 +173,10 @@ class QubesFwupdmgr:
         p.wait()
         if p.returncode != 0:
             raise Exception("Copying metadata signature failed.")
+        p = subprocess.Popen(cmd_copy_jcat, shell=True)
+        p.wait()
+        if p.returncode != 0:
+            raise Exception("Copying metadata jcat failed.")
 
     def _validate_usbvm_metadata(self):
         """Checks GPG signature of metadata files in usbvm."""
@@ -184,7 +202,7 @@ class QubesFwupdmgr:
             (
                 FWUPDMGR,
                 FWUPD_USBVM_METADATA_FILE,
-                FWUPD_USBVM_METADATA_SIGNATURE,
+                FWUPD_USBVM_METADATA_JCAT,
             )
         ]
         p = subprocess.Popen(cmd_refresh_metadata)
@@ -284,7 +302,7 @@ class QubesFwupdmgr:
             FWUPDMGR,
             "refresh",
             FWUPD_DOM0_METADATA_FILE,
-            FWUPD_DOM0_METADATA_SIGNATURE,
+            FWUPD_DOM0_METADATA_JCAT,
             "lvfs"
         ]
         p = subprocess.Popen(
