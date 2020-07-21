@@ -57,6 +57,7 @@ def device_connected_dom0():
     if 'qubes' not in platform.release():
         return False
     q = qfwupd.QubesFwupdmgr()
+    q.check_fwupd_version()
     q._get_dom0_devices()
     return "ColorHug2" in q.dom0_devices_info
 
@@ -66,6 +67,7 @@ def device_connected_usbvm():
     if not check_usbvm():
         return False
     q = qfwupd.QubesFwupdmgr()
+    q.check_fwupd_version(usbvm=True)
     q._validate_usbvm_dirs()
     if not path.exists(FWUPD_DOM0_DIR):
         q.refresh_metadata()
@@ -113,6 +115,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_get_dom0_updates(self):
+        self.q.check_fwupd_version()
         self.q._get_dom0_updates()
         self.assertTrue(
             "Devices" in self.q.dom0_updates_info,
@@ -282,6 +285,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_get_dom0_devices(self):
+        self.q.check_fwupd_version()
         self.q._get_dom0_devices()
         self.assertIsNotNone(self.q.dom0_devices_info)
 
@@ -289,6 +293,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_get_devices_qubes_dom0(self):
         get_devices_output = io.StringIO()
         sys.stdout = get_devices_output
+        self.q.check_fwupd_version()
         self.q.get_devices_qubes()
         self.assertNotEqual(get_devices_output.getvalue().strip(), "")
         sys.stdout = self.captured_output
@@ -297,6 +302,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_get_devices_qubes_usbvm(self):
         get_devices_output = io.StringIO()
         sys.stdout = get_devices_output
+        self.q.check_fwupd_version(usbvm=True)
         self.q.get_devices_qubes(usbvm=True)
         self.assertNotEqual(get_devices_output.getvalue().strip(), "")
         sys.stdout = self.captured_output
@@ -305,6 +311,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_get_updates_qubes_dom0(self):
         get_updates_output = io.StringIO()
         sys.stdout = get_updates_output
+        self.q.check_fwupd_version()
         self.q.get_updates_qubes()
         self.assertNotEqual(get_updates_output.getvalue().strip(), "")
         sys.stdout = self.captured_output
@@ -313,6 +320,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_get_updates_qubes_usbvm(self):
         get_updates_output = io.StringIO()
         sys.stdout = get_updates_output
+        self.q.check_fwupd_version(usbvm=True)
         self.q.get_updates_qubes(usbvm=True)
         self.assertNotEqual(get_updates_output.getvalue().strip(), "")
         sys.stdout = self.captured_output
@@ -371,6 +379,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     @unittest.skipUnless(device_connected_dom0(), REQUIRED_DEV)
     def test_downgrade_firmware_dom0(self):
         old_version = None
+        self.q.check_fwupd_version()
         self.q._get_dom0_devices()
         downgrades = self.q._parse_downgrades(self.q.dom0_devices_info)
         for number, device in enumerate(downgrades):
@@ -394,6 +403,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     @unittest.skipUnless(device_connected_usbvm(), REQUIRED_DEV)
     def test_downgrade_firmware_usbvm(self):
         old_version = None
+        self.q.check_fwupd_version(usbvm=True)
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
             downgrades = self.q._parse_downgrades(usbvm_device_info.read())
@@ -513,6 +523,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_update_firmware_dom0(self):
         old_version = None
         new_version = None
+        self.q.check_fwupd_version()
         self.q._get_dom0_updates()
         self.q._parse_dom0_updates_info(self.q.dom0_updates_info)
         for number, device in enumerate(self.q.dom0_updates_list):
@@ -544,6 +555,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_update_firmware_usbvm(self):
         old_version = None
         new_version = None
+        self.q.check_fwupd_version(usbvm=True)
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
             self.q._parse_usbvm_updates(usbvm_device_info.read())
@@ -575,6 +587,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_get_usbvm_devices(self):
+        self.q.check_fwupd_version(usbvm=True)
         self.q._get_usbvm_devices()
         self.assertTrue(path.exists(FWUPD_USBVM_LOG))
 
@@ -782,7 +795,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
                 "/usr/libexec/fwupd/fwupdagent"
             )
         else:
-            self.assertEqual(self.q.fwupdagent_usbvm, "/bin/fwupdmgr")
+            self.assertEqual(self.q.fwupdagent_dom0, "/bin/fwupdagent")
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_check_fwupd_version_usbvm(self):
@@ -806,7 +819,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
                 "/usr/libexec/fwupd/fwupdagent"
             )
         else:
-            self.assertEqual(self.q.fwupdagent_usbvm, "/bin/fwupdmgr")
+            self.assertEqual(self.q.fwupdagent_usbvm, "/bin/fwupdagent")
 
 
 if __name__ == '__main__':
