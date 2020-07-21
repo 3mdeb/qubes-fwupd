@@ -64,6 +64,8 @@ if [ "$METADATA" == "1" ]; then
     wget -P $FWUPD_UPDATEVM_DIR/metadata \
         https://cdn.fwupd.org/downloads/firmware.xml.gz
     wget -P $FWUPD_UPDATEVM_DIR/metadata \
+        https://cdn.fwupd.org/downloads/firmware.xml.gz.jcat
+    wget -P $FWUPD_UPDATEVM_DIR/metadata \
         https://cdn.fwupd.org/downloads/firmware.xml.gz.asc
     gpg --verify $FWUPD_UPDATEVM_DIR/metadata/firmware.xml.gz.asc \
         $FWUPD_UPDATEVM_DIR/metadata/firmware.xml.gz

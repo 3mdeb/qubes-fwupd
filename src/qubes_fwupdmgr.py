@@ -40,6 +40,10 @@ FWUPD_DOM0_METADATA_FILE = os.path.join(
     FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz"
 )
+FWUPD_DOM0_METADATA_JCAT = os.path.join(
+    FWUPD_DOM0_METADATA_DIR,
+    "firmware.xml.gz.jcat"
+)
 FWUPD_USBVM_LOG = os.path.join(FWUPD_DOM0_DIR, "usbvm-devices.log")
 FWUPD_USBVM_VALIDATE = "/usr/share/qubes-fwupd/fwupd_usbvm_validate.py"
 FWUPD_USBVM_DIR = "/home/user/.cache/fwupd"
@@ -53,10 +57,16 @@ FWUPD_USBVM_METADATA_FILE = os.path.join(
     FWUPD_USBVM_METADATA_DIR,
     "firmware.xml.gz"
 )
+FWUPD_USBVM_METADATA_JCAT = os.path.join(
+    FWUPD_USBVM_METADATA_DIR,
+    "firmware.xml.gz.jcat"
+)
 FWUPD_DOWNLOAD_PREFIX = "https://fwupd.org/downloads/"
 FWUPDMGR = "/bin/fwupdmgr"
-FWUPDAGENT_DOM0 = "/bin/fwupdagent"
-FWUPDAGENT_USBVM = "/usr/libexec/fwupd/fwupdagent"
+# version > 1.3.8
+FWUPDAGENT_NEW = "/bin/fwupdagent"
+# version <= 1.3.8
+FWUPDAGENT_OLD = "/usr/libexec/fwupd/fwupdagent"
 USBVM_N = "sys-usb"
 
 METADATA_REFRESH_REGEX = re.compile(
@@ -151,6 +161,12 @@ class QubesFwupdmgr:
             USBVM_N,
             cat_sig
         )
+        cat_jcat = "cat > %s" % FWUPD_USBVM_METADATA_JCAT
+        cmd_copy_jcat = 'cat %s | qvm-run --nogui --pass-io %s "%s"' % (
+            FWUPD_DOM0_METADATA_JCAT,
+            USBVM_N,
+            cat_jcat
+        )
         p = subprocess.Popen(cmd_copy_file, shell=True)
         p.wait()
         if p.returncode != 0:
@@ -159,6 +175,10 @@ class QubesFwupdmgr:
         p.wait()
         if p.returncode != 0:
             raise Exception("Copying metadata signature failed.")
+        p = subprocess.Popen(cmd_copy_jcat, shell=True)
+        p.wait()
+        if p.returncode != 0:
+            raise Exception("Copying metadata jcat failed.")
 
     def _validate_usbvm_metadata(self):
         """Checks GPG signature of metadata files in usbvm."""
@@ -184,7 +204,7 @@ class QubesFwupdmgr:
             (
                 FWUPDMGR,
                 FWUPD_USBVM_METADATA_FILE,
-                FWUPD_USBVM_METADATA_SIGNATURE,
+                FWUPD_USBVM_METADATA_JCAT,
             )
         ]
         p = subprocess.Popen(cmd_refresh_metadata)
@@ -284,7 +304,7 @@ class QubesFwupdmgr:
             FWUPDMGR,
             "refresh",
             FWUPD_DOM0_METADATA_FILE,
-            FWUPD_DOM0_METADATA_SIGNATURE,
+            FWUPD_DOM0_METADATA_JCAT,
             "lvfs"
         ]
         p = subprocess.Popen(
@@ -301,7 +321,7 @@ class QubesFwupdmgr:
     def _get_dom0_updates(self):
         """Gathers infromations about available updates."""
         cmd_get_dom0_updates = [
-            FWUPDAGENT_DOM0,
+            self.fwupdagent_dom0,
             "get-updates"
         ]
         p = subprocess.Popen(
@@ -525,7 +545,7 @@ class QubesFwupdmgr:
     def _get_dom0_devices(self):
         """Gathers information about devices connected in dom0."""
         cmd_get_dom0_devices = [
-            FWUPDAGENT_DOM0,
+            self.fwupdagent_dom0,
             "get-devices"
         ]
         p = subprocess.Popen(
@@ -542,7 +562,7 @@ class QubesFwupdmgr:
             os.remove(FWUPD_USBVM_LOG)
         # Different versions of fwupd have different paths of binaries.
         # In the future the paths will be given dynamically.
-        usbvm_cmd = '"%s get-devices"' % FWUPDAGENT_USBVM
+        usbvm_cmd = '"%s get-devices"' % self.fwupdagent_usbvm
         cmd_get_usbvm_devices = 'qvm-run --nogui --pass-io %s %s > %s' % (
             USBVM_N,
             usbvm_cmd,
@@ -588,6 +608,55 @@ class QubesFwupdmgr:
                         )
                 if not self.usbvm_updates_list[-1]["Releases"]:
                     self.usbvm_updates_list.pop()
+
+    def check_fwupd_version(self, usbvm=False):
+        """Checks the fwupd client version and sets fwupdagent paths
+        dynamicly
+
+        Keyword arguments:
+        usbvm -- usbvm support flag
+        """
+        version_check = 'client version:\t1.3.8'
+        version_regex = re.compile(
+            r'client version:\t[0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2}$'
+        )
+        cmd_version = [
+            FWUPDMGR,
+            "--version"
+        ]
+        p = subprocess.Popen(
+            cmd_version,
+            stdout=subprocess.PIPE
+        )
+        client_version = p.communicate()[0].decode().split("\n")[0]
+        assert version_regex.match(client_version), (
+            'Version output has changed!!!'
+        )
+        if l_ver(version_check) > l_ver(client_version):
+            self.fwupdagent_dom0 = FWUPDAGENT_OLD
+        else:
+            self.fwupdagent_dom0 = FWUPDAGENT_NEW
+
+        if usbvm:
+            cmd_version = f'"{FWUPDMGR}" --version'
+            cmd_usbvm_version = [
+                'qvm-run',
+                '--pass-io',
+                USBVM_N,
+                cmd_version
+            ]
+            p = subprocess.Popen(
+                cmd_usbvm_version,
+                stdout=subprocess.PIPE
+            )
+            client_version = p.communicate()[0].decode().split("\n")[0]
+            assert version_regex.match(client_version), (
+                'Version output has changed!!!'
+            )
+            if l_ver(version_check) > l_ver(client_version):
+                self.fwupdagent_usbvm = FWUPDAGENT_OLD
+            else:
+                self.fwupdagent_usbvm = FWUPDAGENT_NEW
 
     def update_firmware(self, usbvm=False):
         """Updates firmware of the specified device.
@@ -899,6 +968,7 @@ def main():
         exit(EXIT_CODES["ERROR"])
     q = QubesFwupdmgr()
     sys_usb = q.check_usbvm()
+    q.check_fwupd_version(usbvm=sys_usb)
     if not os.path.exists(FWUPD_DOM0_DIR):
         q.refresh_metadata(usbvm=sys_usb)
     if len(sys.argv) < 2:

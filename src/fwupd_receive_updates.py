@@ -41,6 +41,10 @@ FWUPD_DOM0_METADATA_FILE = path.join(
     FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz"
 )
+FWUPD_DOM0_METADATA_FILE_JCAT = path.join(
+    FWUPD_DOM0_METADATA_DIR,
+    "firmware.xml.gz.jcat"
+)
 
 FWUPD_UPDATEVM_DIR = "/home/user/.cache/fwupd"
 FWUPD_UPDATEVM_UPDATES_DIR = path.join(FWUPD_UPDATEVM_DIR, "updates")
@@ -53,10 +57,16 @@ FWUPD_UPDATEVM_METADATA_FILE = path.join(
     FWUPD_UPDATEVM_METADATA_DIR,
     "firmware.xml.gz"
 )
+FWUPD_UPDATEVM_METADATA_JCAT = path.join(
+    FWUPD_UPDATEVM_METADATA_DIR,
+    "firmware.xml.gz.jcat"
+)
 
-FWUPD_METADATA_FILES_REGEX = re.compile(r"^firmware.xml.gz.?a?s?c?$")
 FWUPD_FIRMWARE_FLAG_REGEX = re.compile(r"^updateflag-[A-Za-z0-9]{1,128}\.cab")
 FWUPD_METADATA_FLAG_REGEX = re.compile(r"^metaflag")
+FWUPD_METADATA_FILES_REGEX = re.compile(
+    r"^firmware.xml.gz.?[aj]?[sc]?[ca]?t?$"
+)
 GPG_LVFS_REGEX = re.compile(
     r"gpg: Good signature from [a-z0-9\[\]\@\<\>\.\"\"]{1,128}"
 )
@@ -251,6 +261,7 @@ class FwupdReceiveUpdates:
         self._create_dirs(FWUPD_DOM0_METADATA_DIR)
         cmd_file = "'cat %s'" % FWUPD_UPDATEVM_METADATA_FILE
         cmd_signature = "'cat %s'" % FWUPD_UPDATEVM_METADATA_SIGNATURE
+        cmd_jcat = "'cat %s'" % FWUPD_UPDATEVM_METADATA_JCAT
         cmd_copy_metadata_file = 'qvm-run --pass-io %s %s > %s' % (
             self.source,
             cmd_file,
@@ -261,6 +272,11 @@ class FwupdReceiveUpdates:
             cmd_signature,
             FWUPD_DOM0_METADATA_SIGNATURE
         )
+        cmd_copy_metadata_jcat = 'qvm-run --pass-io %s %s > %s' % (
+            self.source,
+            cmd_jcat,
+            FWUPD_DOM0_METADATA_FILE_JCAT
+        )
 
         p = subprocess.Popen(cmd_copy_metadata_file, shell=True)
         p.wait()
@@ -270,6 +286,10 @@ class FwupdReceiveUpdates:
         p.wait()
         if p.returncode != 0:
             raise Exception('qvm-run": Copying metadata signature failed!!')
+        p = subprocess.Popen(cmd_copy_metadata_jcat, shell=True)
+        p.wait()
+        if p.returncode != 0:
+            raise Exception('qvm-run": Copying metadata jcat failed!!')
 
         self._verify_received(
             FWUPD_DOM0_METADATA_DIR,

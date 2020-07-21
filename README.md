@@ -1,38 +1,8 @@
 # qubes-fwupd
 
-fwupd wrappers for QubesOS
+fwupd wrapper for QubesOS [R4.1](https://openqa.qubes-os.org/tests/9430#downloads)
 
 WARNING: The repository is currently under development. Use it at your own risk.
-
-## Installation
-
-For development proposes:
-
-1. Run a personal VM in Qubes OS
-
-2. Run a terminal in the personal VM and clone the repository:
-
-```
-git clone git@github.com:3mdeb/qubes-fwupd.git
-```
-
-3. Zip the repository and check the sha256 sum
-
-4. Run a terminal in dom0 and copy the zip file
-
-```
-qvm-run --pass-io personal 'cat ~/Project/fwupd-implementation/qubes-fwupd.zip' > qubes-fwupd.zip
-```
-
-5. Inspect the checksum and unzip the repository
-
-6. Run the setup script:
-
-```
-sudo ./setup
-```
-
-7. Run the tests to verify that the installation process has been successful
 
 ## Usage
 
@@ -48,10 +18,104 @@ Help:
     -h --help:          Show the help
 ```
 
+## Installation
+
+For development purpose:
+
+1. Clone [qubes-builder](https://github.com/QubesOS/qubes-builder)
+
+```bash
+git clone https://github.com/QubesOS/qubes-builder.git
+cd qubes-builder
+```
+
+2. Use your desired `builder.conf` file from `example-configs` directory.
+
+3. Edit the `builder.conf` by adding:
+
+```
+GIT_URL_fwupd = https://github.com/3mdeb/qubes-fwupd
+NO_CHECK += fuwpd
+...
+
+COMPONENTS = ...
+        builder-debian \
+        builder-rpm \
+        fwupd
+```
+
+4. Download sources used to build Qubes:
+
+```
+make get-sources
+```
+
+5. Install dependencies:
+
+```
+make install-deps
+```
+
+6. You may need remount command before building package:
+
+```
+make remount
+```
+
+6. Build RPM package:
+
+```
+make fwupd
+```
+
+7. The result will be placed as RPM package in:
+  -- dom0 package - `qubes-builder/qubes-src/fwupd/pkgs/dom0-fc32/x86_64`
+  -- vm package - `qubes-builder/qubes-src/fwupd/pkgs/dom0-fc32/x86_64`
+
+8. Run fedora templateVM and copy RPM from qubes-builder VM to fedoraVM:
+
+```
+qvm-copy qubes-fwupd-vm-0.1.3-1.fc32.x86_64.rpm
+```
+
+9. Install install dependencies
+
+```
+# dnf install cabextract fwudp
+```
+
+10. Go to `~/QubesIncoming/fwupd` and compare a checksum of the package in
+TemplateVM and qubes-builder VM. If checksums match install the package:
+
+```
+# rpm -i qubes-fwupd-vm-0.1.3-1.fc32.x86_64.rpm
+```
+
+11. Shutdown TemplateVM
+
+12. Run terminal in the dom0 and copy package:
+
+```
+qvm-run --pass-io <qubes-builder-vm-name> \
+'cat <qubes-builder-repo-path>/qubes-src/fwupd/pkgs/dom0-fc32/x86_64/qvm-copy qubes-fwupd-vm-0.1.3-1.fc32.x86_64.rpm' > \
+qvm-copy qubes-fwupd-vm-0.1.3-1.fc32.x86_64.rpm
+```
+
+13. Compare a checksum of the package in dom0 and qubes-builder VM.
+If checksums match install the package:
+
+```
+# rpm -i qubes-fwupd-dom0-0.1.3-1.fc32.x86_64.rpm
+```
+
+14. Run the tests to verify that the installation process has been successful
+
 ## Testing
 
-You don't need Qubes OS to run the tests during development. In the top
-repo directory run the tests:
+### Outside the Qubes OS
+
+Tests could be run outside the Qubes OS. If test requirement is not meet, the
+test is ommited. Run the tests in the repo directory:
 
 ```
 $ python3 -m unittest -v test.test_qubes_fwupdmgr
@@ -85,14 +149,18 @@ Ran 22 tests in 0.003s
 OK (skipped=8)
 ```
 
-To verify instalation in dom0 move to:
+### In the Qubes OS
+
+In the dom0 move to:
 
 ```
 cd /usr/share/qubes-fwupd/
 ```
 
-Then run the tests with sudo privileges:
+Run the tests with sudo privileges:
 
 ```
 # python3 -m unittest -v test.test_qubes_fwupdmgr
 ```
+
+[![asciicast](https://asciinema.org/a/TgHOkLnD2YICxB0U80PVcQGqX.svg)](https://asciinema.org/a/TgHOkLnD2YICxB0U80PVcQGqX)
