@@ -39,6 +39,8 @@ FWUPD_USBVM_METADATA_FILE = path.join(
 REQUIRED_DEV = "Requires device not connected"
 REQUIRED_USBVM = "Requires sys-usb"
 XL_LIST_LOG = "Name                                        ID   Mem VCPUs	State	Time(s)"
+USBVM_N = "sys-usb"
+FWUPDMGR = "/bin/fwupdmgr"
 
 
 def check_usbvm():
@@ -760,6 +762,51 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_check_usbvm(self):
         self.q.check_usbvm()
         self.assertTrue(XL_LIST_LOG in self.q.output)
+
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
+    def test_check_fwupd_version_dom0(self):
+        self.q.check_fwupd_version()
+        version_check = 'client version:\t1.3.8'
+        cmd_version = [
+            "fwupdmgr",
+            "--version"
+        ]
+        p = subprocess.Popen(
+            cmd_version,
+            stdout=subprocess.PIPE
+        )
+        client_version = p.communicate()[0].decode().split("\n")[0]
+        if ver.LooseVersion(version_check) > ver.LooseVersion(client_version):
+            self.assertEqual(
+                self.q.fwupdagent_usbvm,
+                "/usr/libexec/fwupd/fwupdagent"
+            )
+        else:
+            self.assertEqual(self.q.fwupdagent_usbvm, "/bin/fwupdmgr")
+
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
+    def test_check_fwupd_version_usbvm(self):
+        self.q.check_fwupd_version(usbvm=True)
+        version_check = 'client version:\t1.3.8'
+        cmd_version = f'"{FWUPDMGR}" --version'
+        cmd_usbvm_version = [
+            'qvm-run',
+            '--pass-io',
+            USBVM_N,
+            cmd_version
+        ]
+        p = subprocess.Popen(
+            cmd_usbvm_version,
+            stdout=subprocess.PIPE
+        )
+        client_version = p.communicate()[0].decode().split("\n")[0]
+        if ver.LooseVersion(version_check) > ver.LooseVersion(client_version):
+            self.assertEqual(
+                self.q.fwupdagent_usbvm,
+                "/usr/libexec/fwupd/fwupdagent"
+            )
+        else:
+            self.assertEqual(self.q.fwupdagent_usbvm, "/bin/fwupdmgr")
 
 
 if __name__ == '__main__':
