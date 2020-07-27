@@ -318,12 +318,18 @@ class QubesFwupdmgr:
         if not METADATA_REFRESH_REGEX.match(self.output):
             raise Exception("Metadata signature does not exist")
 
-    def _get_dom0_updates(self):
+    def _get_dom0_updates(self, old=False):
         """Gathers infromations about available updates."""
-        cmd_get_dom0_updates = [
-            self.fwupdagent_dom0,
-            "get-updates"
-        ]
+        if old:
+            cmd_get_dom0_updates = [
+                self.fwupdagent_dom0,
+                "get-devices"
+            ]
+        else:
+            cmd_get_dom0_updates = [
+                self.fwupdagent_dom0,
+                "get-updates"
+            ]
         p = subprocess.Popen(
             cmd_get_dom0_updates,
             stdout=subprocess.PIPE
@@ -353,6 +359,33 @@ class QubesFwupdmgr:
                     ]
             } for device in self.dom0_updates_info_dict["Devices"]
         ]
+
+    def _parse_dom0_updates_old_agent(self, devices_info):
+        self.dom0_updates_list = []
+        self.dom0_updates_info_dict = json.loads(devices_info)
+        print(self.dom0_updates_info_dict)
+        for device in self.dom0_updates_info_dict["Devices"]:
+            if "Releases" in device:
+                self.dom0_updates_list.append(
+                    {
+                        "Name": device["Name"],
+                        "Version": device["Version"],
+                        "Releases": []
+                    }
+                )
+                current_version = device["Version"]
+                for update in device["Releases"]:
+                    if l_ver(update["Version"]) > current_version:
+                        self.dom0_updates_list[-1]["Releases"].append(
+                            {
+                                "Version": update["Version"],
+                                "Url": update["Uri"],
+                                "Checksum": update["Checksum"][0],
+                                "Description": update["Description"]
+                            }
+                        )
+                if not self.dom0_updates_list[-1]["Releases"]:
+                    self.dom0_updates_list.pop()
 
     def _download_firmware_updates(self, url, sha):
         """Initializes downloading firmware upadate archive.
@@ -634,8 +667,10 @@ class QubesFwupdmgr:
         )
         if l_ver(version_check) > l_ver(client_version):
             self.fwupdagent_dom0 = FWUPDAGENT_OLD
+            self.old = True
         else:
             self.fwupdagent_dom0 = FWUPDAGENT_NEW
+            self.old = False
 
         if usbvm:
             cmd_version = f'"{FWUPDMGR}" --version'
@@ -664,8 +699,12 @@ class QubesFwupdmgr:
         Keyword arguments:
         usbvm -- usbvm support flag
         """
-        self._get_dom0_updates()
-        self._parse_dom0_updates_info(self.dom0_updates_info)
+        if self.old:
+            self._get_dom0_updates(old=True)
+            self._parse_dom0_updates_old_agent(self.dom0_updates_info)
+        else:
+            self._get_dom0_updates()
+            self._parse_dom0_updates_info(self.dom0_updates_info)
         if usbvm:
             self._get_usbvm_devices()
             with open(FWUPD_USBVM_LOG) as usbvm_device_info:
@@ -918,8 +957,12 @@ class QubesFwupdmgr:
         Keyword arguments:
         usbvm -- usbvm support flag
         """
-        self._get_dom0_updates()
-        self._parse_dom0_updates_info(self.dom0_updates_info)
+        if self.old:
+            self._get_dom0_updates(old=True)
+            self._parse_dom0_updates_old_agent(self.dom0_updates_info)
+        else:
+            self._get_dom0_updates()
+            self._parse_dom0_updates_info(self.dom0_updates_info)
         self._updates_crawler(self.dom0_updates_list)
         if usbvm:
             self._get_usbvm_devices()

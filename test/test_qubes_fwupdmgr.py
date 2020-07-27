@@ -612,6 +612,27 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.q._parse_usbvm_updates(GET_DEVICES_NO_UPDATES)
         self.assertListEqual(self.q.usbvm_updates_list, [])
 
+    def test_parse_dom0_updates_old_agent(self):
+        self.q._parse_dom0_updates_old_agent(GET_DEVICES)
+        self.assertEqual(self.q.dom0_updates_list[0]["Name"], "ColorHug2")
+        self.assertEqual(self.q.dom0_updates_list[0]["Version"], "2.0.6")
+        self.assertListEqual(
+            self.q.dom0_updates_list[0]["Releases"],
+            [
+                {
+                    'Checksum': '490be5c0b13ca4a3f169bf8bc682ba127b8f7b96',
+                    'Description': '<p>This release fixes prevents the firmware returning an '
+                                   'error when the remote SHA1 hash was never sent.</p>',
+                    'Url': 'https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab',
+                    'Version': '2.0.7'
+                }
+            ]
+        )
+
+    def test_parse_dom0_updates_old_agent_no_updates_available(self):
+        self.q._parse_dom0_updates_old_agent(GET_DEVICES_NO_UPDATES)
+        self.assertListEqual(self.q.dom0_updates_list, [])
+
     def test_updates_crawler(self):
         crawler_output = io.StringIO()
         sys.stdout = crawler_output
