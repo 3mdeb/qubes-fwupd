@@ -1,0 +1,7 @@
+qubes-fwupd (1.3.0) unstable; urgency=medium
+
+    [ Norbert Kamiński (Asiderr) ]
+    * Add whonix support
+
+    -- Norbert Kamiński <norbert.kaminski@3mdeb.com>  Thu, 12 Aug 2020 15:53:40 +0200
+
