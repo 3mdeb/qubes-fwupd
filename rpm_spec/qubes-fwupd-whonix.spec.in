@@ -2,15 +2,13 @@
 %define PKI /etc/pki/fwupd
 %define GPG_DIR /home/user/.gnupg
 
-Name: qubes-fwupd-whonix
+Name: qubes-fwupd-vm
 Version: @VERSION@
-Release: @REL@%{?dist}
+Release: whonix_@REL@%{?dist}
 
 Summary: fwupd wrapper for Qubes OS - VM scripts
 License: GPLv2+
 URL: https://www.qubes-os.org/
-
-Requires:   gpg
 
 Source0: %{name}-%{version}.tar.gz
 
