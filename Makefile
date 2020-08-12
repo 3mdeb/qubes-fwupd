@@ -30,7 +30,6 @@ install-vm:
 
 install-whonix:
 	install -m 755 -D src/updatevm/fwupd-download-updates.sh $(DESTDIR)$(FWUPD_QUBES_DIR)/fwupd-download-updates.sh
-	install -d /home/user/.cache/fwupd
 
 clean:
 	rm -rf pkgs
