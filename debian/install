@@ -1,2 +1,1 @@
-usr/share/qubes-fwupd/
-home/user/.cache/fwupd/fwupd-download-updates.sh
+fwupd-download-updates.sh usr/share/qubes-fwupd

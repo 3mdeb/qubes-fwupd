@@ -1,4 +1,4 @@
-Source: qubes-fwupd-vm
+Source: qubes-fwupd
 Section: misc
 Priority: extra
 Maintainer: Norbert Kamiński (Asiderr) <norbert.kaminski@3mdeb.com>
@@ -10,7 +10,7 @@ Homepage: https://fwupd.org/
 
 Package: qubes-fwupd-vm-whonix
 Section: misc
-Architecture: x86-64
+Architecture: amd64
 Depends: gpg
 Provides: ${diverted-files}
 Conflicts: ${diverted-files}
