@@ -1,3 +1,4 @@
 #!/bin/bash
 
 mkdir /home/user/.cache/fwupd
+chown -R user:user /home/user/.cache/fwupd
