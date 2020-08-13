@@ -454,7 +454,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         )
 
     @unittest.skipUnless(check_whonix_updatevm(), REQUIRED_DEV)
-    def test_downgrade_n_update_firmware_whonix(self):
+    def test_update_n_downgrade_firmware_whonix(self):
         old_version = None
         self.q.check_fwupd_version(usbvm=True)
         self.q._get_usbvm_devices()
