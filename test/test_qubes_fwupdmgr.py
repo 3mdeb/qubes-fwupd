@@ -458,27 +458,60 @@ class TestQubesFwupdmgr(unittest.TestCase):
         device_connected_dom0() and check_whonix_updatevm(),
         REQUIRED_DEV
     )
-    def test_downgrade_firmware_whonix(self):
+    def test_downgrade_and_update_firmware_whonix(self):
         old_version = None
-        self.q.check_fwupd_version()
-        self.q._get_dom0_devices()
-        downgrades = self.q._parse_downgrades(self.q.dom0_devices_info)
-        for number, device in enumerate(downgrades):
-            if "Name" not in device:
-                continue
-            if device["Name"] == "ColorHug2":
-                old_version = device["Version"]
-                break
+        self.q.check_fwupd_version(usbvm=True)
+        self.q._get_usbvm_devices()
+        with open(FWUPD_USBVM_LOG) as usbvm_device_info:
+            downgrades = self.q._parse_downgrades(usbvm_device_info.read())
+            for number, device in enumerate(downgrades):
+                if "Name" not in device:
+                    continue
+                if device["Name"] == "ColorHug2":
+                    old_version = device["Version"]
+                    break
         if old_version is None:
             self.fail("Test device not found")
         user_input = [str(number+1), '1']
         with patch('builtins.input', side_effect=user_input):
-            self.q.downgrade_firmware(whonix=True)
-        self.q._get_dom0_devices()
-        downgrades = self.q._parse_downgrades(self.q.dom0_devices_info)
+            self.q.downgrade_firmware(usbvm=True, whonix=True)
+        self.q._get_usbvm_devices()
+        with open(FWUPD_USBVM_LOG) as usbvm_device_info:
+            downgrades = self.q._parse_downgrades(usbvm_device_info.read())
         new_version = downgrades[number]["Version"]
         self.assertTrue(
             ver.LooseVersion(old_version) > ver.LooseVersion(new_version)
+        )
+        old_version = None
+        new_version = None
+        self.q.check_fwupd_version(usbvm=True)
+        self.q._get_usbvm_devices()
+        with open(FWUPD_USBVM_LOG) as usbvm_device_info:
+            self.q._parse_usbvm_updates(usbvm_device_info.read())
+            for number, device in enumerate(self.q.usbvm_updates_list):
+                if "Name" not in device:
+                    continue
+                if device["Name"] == "ColorHug2":
+                    old_version = device["Version"]
+                    break
+        if old_version is None:
+            self.fail("Test device not found")
+        user_input = [str(number+1), '1']
+        with patch('builtins.input', side_effect=user_input):
+            self.q.update_firmware(usbvm=True, whonix=True)
+        self.q._get_usbvm_devices()
+        with open(FWUPD_USBVM_LOG) as usbvm_device_info:
+            usbvm_devices_info_dict = json.loads(usbvm_device_info.read())
+        for device in usbvm_devices_info_dict["Devices"]:
+            if "Name" not in device:
+                continue
+            if device["Name"] == "ColorHug2":
+                new_version = device["Version"]
+                break
+        if new_version is None:
+            self.fail("Test device not found")
+        self.assertTrue(
+            ver.LooseVersion(old_version) < ver.LooseVersion(new_version)
         )
 
     @unittest.skipUnless(device_connected_usbvm(), REQUIRED_DEV)
@@ -618,41 +651,6 @@ class TestQubesFwupdmgr(unittest.TestCase):
         user_input = [str(number+1)]
         with patch('builtins.input', side_effect=user_input):
             self.q.update_firmware()
-        self.q._get_dom0_devices()
-        dom0_devices_info_dict = json.loads(self.q.dom0_devices_info)
-        for device in dom0_devices_info_dict["Devices"]:
-            if "Name" not in device:
-                continue
-            if device["Name"] == "ColorHug2":
-                new_version = device["Version"]
-                break
-        if new_version is None:
-            self.fail("Test device not found")
-        self.assertTrue(
-            ver.LooseVersion(old_version) < ver.LooseVersion(new_version)
-        )
-
-    @unittest.skipUnless(
-        device_connected_dom0() and check_whonix_updatevm(),
-        REQUIRED_DEV
-    )
-    def test_update_firmware_whonix(self):
-        old_version = None
-        new_version = None
-        self.q.check_fwupd_version()
-        self.q._get_dom0_updates()
-        self.q._parse_dom0_updates_info(self.q.dom0_updates_info)
-        for number, device in enumerate(self.q.dom0_updates_list):
-            if "Name" not in device:
-                continue
-            if device["Name"] == "ColorHug2":
-                old_version = device["Version"]
-                break
-        if old_version is None:
-            self.fail("Test device not found")
-        user_input = [str(number+1)]
-        with patch('builtins.input', side_effect=user_input):
-            self.q.update_firmware(whonix=True)
         self.q._get_dom0_devices()
         dom0_devices_info_dict = json.loads(self.q.dom0_devices_info)
         for device in dom0_devices_info_dict["Devices"]:
