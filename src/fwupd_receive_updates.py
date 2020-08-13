@@ -99,10 +99,10 @@ class FwupdReceiveUpdates:
         cmd = ['qubes-prefs', '--force-root', 'updatevm']
         p = subprocess.check_output(cmd)
         self.source = p.decode('ascii').rstrip()
-        if self.source != updatevm:
+        if self.source != updatevm or "sys-whonix" != updatevm:
             print(
                 'Domain ' + str(self.source) +
-                'not allowed to send dom0 updates',
+                ' not allowed to send dom0 updates',
                 file=sys.stderr
             )
             exit(1)
