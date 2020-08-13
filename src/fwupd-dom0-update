@@ -105,8 +105,9 @@ if [[ -z "$UPDATE" && -z "$METADATA" ]]; then
     exit 1
 fi
 
-if xl list $UPDATEVM; then
+if ! xl list $UPDATEVM &>/dev/null ; then
     echo "$UPDATEVM is not running. Exiting..." >&2
+    exit 1
 fi
 
 # Set ownership
