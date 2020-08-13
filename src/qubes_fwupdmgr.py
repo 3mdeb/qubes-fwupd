@@ -100,12 +100,18 @@ EXIT_CODES = {
 
 
 class QubesFwupdmgr:
-    def _download_metadata(self):
-        """Initialize downloading metadata files."""
+    def _download_metadata(self, whonix=False):
+        """Initialize downloading metadata files.
+
+        Keywords arguments:
+        whonix -- Flag enforces downloading the metadata updates via Tor
+        """
         cmd_metadata = [
             FWUPD_DOM0_UPDATE,
             "--metadata"
         ]
+        if whonix:
+            cmd_metadata.append("--whonix")
         p = subprocess.Popen(cmd_metadata)
         p.wait()
         if p.returncode != 0:
@@ -288,13 +294,14 @@ class QubesFwupdmgr:
         if p.returncode != 0:
             raise Exception("Cleaning usbvm directories failed")
 
-    def refresh_metadata(self, usbvm=False):
+    def refresh_metadata(self, usbvm=False, whonix=False):
         """Updates metadata with downloaded files.
 
         Keyword arguments:
         usbvm -- usbvm support flag
+        whonix -- Flag enforces downloading the metadata updates via Tor
         """
-        self._download_metadata()
+        self._download_metadata(whonix=whonix)
         if usbvm:
             self._validate_usbvm_dirs()
             self._copy_usbvm_metadata()
@@ -354,12 +361,13 @@ class QubesFwupdmgr:
             } for device in self.dom0_updates_info_dict["Devices"]
         ]
 
-    def _download_firmware_updates(self, url, sha):
+    def _download_firmware_updates(self, url, sha, whonix=False):
         """Initializes downloading firmware upadate archive.
 
         Keywords arguments:
         url -- url path to the firmware upadate archive
         sha -- SHA1 checksum of the firmware update archive
+        whonix -- Flag enforces downloading the updates via Tor
         """
         name = url.replace(FWUPD_DOWNLOAD_PREFIX, "")
         update_path = os.path.join(
@@ -372,6 +380,8 @@ class QubesFwupdmgr:
             "--url=%s" % url,
             "--sha=%s" % sha
         ]
+        if whonix:
+            cmd_fwdownload.append("--whonix")
         p = subprocess.Popen(cmd_fwdownload)
         p.wait()
         if p.returncode != 0:
@@ -410,9 +420,7 @@ class QubesFwupdmgr:
         while True:
             try:
                 print("If you want to abandon process press 'N'.")
-                choice = input(
-                    "Otherwise choose a device number: "
-                )
+                choice = input("Otherwise choose a device number: ")
                 if choice == 'N' or choice == 'n':
                     return EXIT_CODES["NO_UPDATES"]
                 device_num = int(choice)-1
@@ -446,9 +454,7 @@ class QubesFwupdmgr:
                         description = description.replace("</li>", "\n   ")
                         print("   Description: %s" % description)
                     print("If you want to abandon downgrade process press N.")
-                    choice = input(
-                        "Otherwise choose downgrade number: "
-                    )
+                    choice = input("Otherwise choose downgrade number: ")
                     if choice == 'N' or choice == 'n':
                         return EXIT_CODES["NO_UPDATES"]
                     downgrade_num = int(choice)-1
@@ -630,7 +636,7 @@ class QubesFwupdmgr:
         )
         client_version = p.communicate()[0].decode().split("\n")[0]
         assert version_regex.match(client_version), (
-            'Version output has changed!!!'
+            'Version command output has changed!!!'
         )
         if l_ver(version_check) > l_ver(client_version):
             self.fwupdagent_dom0 = FWUPDAGENT_OLD
@@ -651,18 +657,19 @@ class QubesFwupdmgr:
             )
             client_version = p.communicate()[0].decode().split("\n")[0]
             assert version_regex.match(client_version), (
-                'Version output has changed!!!'
+                'Version command output has changed!!!'
             )
             if l_ver(version_check) > l_ver(client_version):
                 self.fwupdagent_usbvm = FWUPDAGENT_OLD
             else:
                 self.fwupdagent_usbvm = FWUPDAGENT_NEW
 
-    def update_firmware(self, usbvm=False):
+    def update_firmware(self, usbvm=False, whonix=False):
         """Updates firmware of the specified device.
 
         Keyword arguments:
         usbvm -- usbvm support flag
+        whonix -- Flag enforces downloading the metadata updates via Tor
         """
         self._get_dom0_updates()
         self._parse_dom0_updates_info(self.dom0_updates_info)
@@ -684,7 +691,7 @@ class QubesFwupdmgr:
             exit(EXIT_CODES["NO_UPDATES"])
         vm_name, choice = ret_input
         self._parse_parameters(update_dict, vm_name, choice)
-        self._download_firmware_updates(self.url, self.sha)
+        self._download_firmware_updates(self.url, self.sha, whonix=whonix)
         arch_name = self.url.replace(FWUPD_DOWNLOAD_PREFIX, "")
         arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, arch_name)
         if self.name == "System Firmware":
@@ -700,7 +707,7 @@ class QubesFwupdmgr:
     def _parse_downgrades(self, device_list):
         """Parses information about possible downgrades.
 
-         Keywords argument:
+        Keywords argument:
         device_list -- list of connected devices
         """
         downgrades = []
@@ -745,11 +752,12 @@ class QubesFwupdmgr:
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Firmware downgrade failed")
 
-    def downgrade_firmware(self, usbvm=False):
+    def downgrade_firmware(self, usbvm=False, whonix=False):
         """Downgrades firmware of the specified device.
 
         Keyword arguments:
         usbvm -- usbvm support flag
+        whonix -- Flag enforces downloading the metadata updates via Tor
         """
         self._get_dom0_devices()
         dom0_downgrades = self._parse_downgrades(self.dom0_devices_info)
@@ -781,7 +789,8 @@ class QubesFwupdmgr:
         downgrade_sha = releases[downgrade_choice]["Checksum"]
         self._download_firmware_updates(
             downgrade_url,
-            downgrade_sha
+            downgrade_sha,
+            whonix=whonix
         )
         arch_name = downgrade_url.replace(FWUPD_DOWNLOAD_PREFIX, "")
         arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, arch_name)
@@ -977,11 +986,17 @@ def main():
         q.get_updates_qubes(usbvm=sys_usb)
     elif sys.argv[1] == "get-devices":
         q.get_devices_qubes(usbvm=sys_usb)
-    elif sys.argv[1] == "refresh":
+    elif sys.argv[1] == "refresh" and "--whonix" in sys.argv:
+        q.refresh_metadata(usbvm=sys_usb, whonix=True)
+    elif sys.argv[1] == "refresh" and "--whonix" not in sys.argv:
         q.refresh_metadata(usbvm=sys_usb)
-    elif sys.argv[1] == "update":
+    elif sys.argv[1] == "update" and "--whonix" in sys.argv:
+        q.update_firmware(usbvm=sys_usb, whonix=True)
+    elif sys.argv[1] == "update" and "--whonix" not in sys.argv:
         q.update_firmware(usbvm=sys_usb)
-    elif sys.argv[1] == "downgrade":
+    elif sys.argv[1] == "downgrade" and "--whonix" in sys.argv:
+        q.downgrade_firmware(usbvm=sys_usb, whonix=True)
+    elif sys.argv[1] == "downgrade" and "--whonix" not in sys.argv:
         q.downgrade_firmware(usbvm=sys_usb)
     elif sys.argv[1] == "clean":
         q.clean_cache(usbvm=sys_usb)
