@@ -1,0 +1,8 @@
+#!/bin/bash
+
+FWUPD_UPDATEVM_DIR=/home/user/.cache/fwupd
+FWUPD_UPDATEVM_SCRIPT=/usr/share/qubes-fwupd/fwupd-download-updates.sh
+
+mkdir $FWUPD_UPDATEVM_DIR
+chown -R user:user $FWUPD_UPDATEVM_DIR
+chmod +x $FWUPD_UPDATEVM_SCRIPT

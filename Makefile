@@ -28,5 +28,8 @@ install-vm:
 	install -m 755 -D src/updatevm/fwupd-download-updates.sh $(DESTDIR)$(FWUPD_QUBES_DIR)/fwupd-download-updates.sh
 	install -m 755 -D src/usbvm/fwupd_usbvm_validate.py $(DESTDIR)$(FWUPD_QUBES_DIR)/fwupd_usbvm_validate.py
 
+install-whonix:
+	install -m 755 -D src/updatevm/fwupd-download-updates.sh $(DESTDIR)$(FWUPD_QUBES_DIR)/fwupd-download-updates.sh
+
 clean:
 	rm -rf pkgs
