@@ -12,6 +12,4 @@ Package: qubes-fwupd-vm-whonix
 Section: misc
 Architecture: amd64
 Depends: gpg
-Provides: ${diverted-files}
-Conflicts: ${diverted-files}
 Description: Whonix support for qubes-fwupd
