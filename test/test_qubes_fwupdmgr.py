@@ -78,21 +78,11 @@ def device_connected_usbvm():
 
 def check_whonix_updatevm():
     """Checks if the sys-whonix is running"""
-    check_usbvm()
-    cmd_xl_list = [
-        'xl',
-        'list',
-        'sys-whonix'
-    ]
-    p = subprocess.Popen(
-        cmd_xl_list,
-        stdout=subprocess.PIPE
-    )
-    p.wait()
-    if p.returncode == 0:
-        return True
-    else:
+    if 'qubes' not in platform.release():
         return False
+    q = qfwupd.QubesFwupdmgr()
+    q.check_usbvm()
+    return "sys-whonix" in q.output
 
 
 class TestQubesFwupdmgr(unittest.TestCase):
@@ -300,8 +290,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "! [ -d %s ]" %
-            FWUPD_USBVM_METADATA_DIR
+            f"! [ -d {FWUPD_USBVM_METADATA_DIR} ]"
         ]
         p = subprocess.Popen(cmd_validate_metadata)
         p.wait()
@@ -314,8 +303,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "! [ -d %s ]" %
-            FWUPD_USBVM_UPDATES_DIR
+            f"! [ -d {FWUPD_USBVM_UPDATES_DIR} ]"
         ]
         p = subprocess.Popen(cmd_validate_udpdate)
         p.wait()
@@ -741,8 +729,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "[ -d %s ]" %
-            FWUPD_USBVM_METADATA_DIR
+            f"[ -d {FWUPD_USBVM_METADATA_DIR}]"
         ]
         p = subprocess.Popen(cmd_validate_metadata)
         p.wait()
@@ -755,8 +742,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "[ -d %s ]" %
-            FWUPD_USBVM_UPDATES_DIR
+            f"[ -d {FWUPD_USBVM_UPDATES_DIR}]"
         ]
         p = subprocess.Popen(cmd_validate_udpdate)
         p.wait()
@@ -775,8 +761,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "[ -f %s ]" %
-            FWUPD_USBVM_METADATA_FILE
+            f"[ -f {FWUPD_USBVM_METADATA_FILE} ]"
         ]
         p = subprocess.Popen(cmd_validate_metadata_file)
         p.wait()
@@ -789,8 +774,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "[ -f %s ]" %
-            FWUPD_USBVM_METADATA_SIGNATURE
+            f"[ -f {FWUPD_USBVM_METADATA_SIGNATURE} ]"
         ]
         p = subprocess.Popen(cmd_validate_metadata_sig)
         p.wait()
@@ -823,8 +807,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "! [ -d %s ]" %
-            FWUPD_USBVM_METADATA_DIR
+            f"! [ -d {FWUPD_USBVM_METADATA_DIR} ]"
         ]
         p = subprocess.Popen(cmd_validate_metadata)
         p.wait()
@@ -837,8 +820,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "! [ -d %s ]" %
-            FWUPD_USBVM_UPDATES_DIR
+            f"! [ -d {FWUPD_USBVM_METADATA_DIR} ]"
         ]
         p = subprocess.Popen(cmd_validate_udpdate)
         p.wait()
