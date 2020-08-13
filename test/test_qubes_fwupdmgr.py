@@ -729,7 +729,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            f"[ -d {FWUPD_USBVM_METADATA_DIR}]"
+            f"[ -d {FWUPD_USBVM_METADATA_DIR} ]"
         ]
         p = subprocess.Popen(cmd_validate_metadata)
         p.wait()
@@ -742,7 +742,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            f"[ -d {FWUPD_USBVM_UPDATES_DIR}]"
+            f"[ -d {FWUPD_USBVM_UPDATES_DIR} ]"
         ]
         p = subprocess.Popen(cmd_validate_udpdate)
         p.wait()

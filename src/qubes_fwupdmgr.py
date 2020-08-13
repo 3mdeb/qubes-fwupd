@@ -262,7 +262,7 @@ class QubesFwupdmgr:
             "--pass-io",
             USBVM_N,
             f'script --quiet --return --command'
-            f'"{FWUPDMGR} --allow-older install {arch_path}" /dev/null'
+            f' "{FWUPDMGR} --allow-older install {arch_path}" /dev/null'
         ]
         p = subprocess.Popen(CMD_downgrade)
         p.wait()
