@@ -78,8 +78,7 @@ def device_connected_usbvm():
 
 def check_whonix_updatevm():
     """Checks if the sys-whonix is running"""
-    if 'qubes' not in platform.release():
-        return False
+    check_usbvm()
     cmd_xl_list = [
         'xl',
         'list',
@@ -454,11 +453,8 @@ class TestQubesFwupdmgr(unittest.TestCase):
             ver.LooseVersion(old_version) > ver.LooseVersion(new_version)
         )
 
-    @unittest.skipUnless(
-        device_connected_dom0() and check_whonix_updatevm(),
-        REQUIRED_DEV
-    )
-    def test_downgrade_and_update_firmware_whonix(self):
+    @unittest.skipUnless(check_whonix_updatevm(), REQUIRED_DEV)
+    def test_downgrade_n_update_firmware_whonix(self):
         old_version = None
         self.q.check_fwupd_version(usbvm=True)
         self.q._get_usbvm_devices()
