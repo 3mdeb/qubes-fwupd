@@ -95,8 +95,8 @@ class FwupdReceiveUpdates:
         """
         cmd = ['qubes-prefs', '--force-root', 'updatevm']
         p = subprocess.check_output(cmd)
-        self.source = p.decode('ascii').rstrip()
-        if self.source != updatevm and "sys-whonix" != updatevm:
+        source = p.decode('ascii').rstrip()
+        if source != updatevm and "sys-whonix" != updatevm:
             print(
                 f'Domain {updatevm} not allowed to send dom0 updates',
                 file=sys.stderr
@@ -215,7 +215,7 @@ class FwupdReceiveUpdates:
         self._create_dirs(FWUPD_DOM0_UPDATES_DIR, FWUPD_DOM0_UNTRUSTED_DIR)
 
         cmd_copy = 'qvm-run --pass-io %s %s > %s' % (
-            self.source,
+            updatevm,
             "'cat %s'" % updatevm_firmware_file_path,
             dom0_firmware_untrusted_path
         )
@@ -254,17 +254,17 @@ class FwupdReceiveUpdates:
         cmd_signature = "'cat %s'" % FWUPD_UPDATEVM_METADATA_SIGNATURE
         cmd_jcat = "'cat %s'" % FWUPD_UPDATEVM_METADATA_JCAT
         cmd_copy_metadata_file = 'qvm-run --pass-io %s %s > %s' % (
-            self.source,
+            updatevm,
             cmd_file,
             FWUPD_DOM0_METADATA_FILE
         )
         cmd_copy_metadata_signature = 'qvm-run --pass-io %s %s > %s' % (
-            self.source,
+            updatevm,
             cmd_signature,
             FWUPD_DOM0_METADATA_SIGNATURE
         )
         cmd_copy_metadata_jcat = 'qvm-run --pass-io %s %s > %s' % (
-            self.source,
+            updatevm,
             cmd_jcat,
             FWUPD_DOM0_METADATA_FILE_JCAT
         )
