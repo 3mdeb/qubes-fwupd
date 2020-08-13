@@ -84,10 +84,7 @@ class FwupdReceiveUpdates:
         with open(file_path, 'rb') as f:
             c_sha = hashlib.sha1(f.read()).hexdigest()
         if c_sha != sha:
-            raise ValueError(
-                "Computed checksum %s did NOT match %s. " %
-                (c_sha, sha)
-            )
+            raise ValueError(f"Computed checksum {c_sha} did NOT match {sha}.")
 
     def _check_domain(self, updatevm):
         """Checks if domain given as `updatevm` is allowed to send update
@@ -99,36 +96,32 @@ class FwupdReceiveUpdates:
         cmd = ['qubes-prefs', '--force-root', 'updatevm']
         p = subprocess.check_output(cmd)
         self.source = p.decode('ascii').rstrip()
-        if self.source != updatevm or "sys-whonix" != updatevm:
+        if self.source != updatevm and "sys-whonix" != updatevm:
             print(
-                'Domain ' + str(self.source) +
-                ' not allowed to send dom0 updates',
+                f'Domain {updatevm} not allowed to send dom0 updates',
                 file=sys.stderr
             )
             exit(1)
 
-    def _verify_received(self, files_path, regex_pattern):
+    def _verify_received(self, files_path, regex_pattern, updatevm):
         """Checks if sent files match  regex filename pattern.
 
         Keyword arguments:
 
         files_path -- absolute path to inspected directory
         regex_pattern -- pattern of the expected files
+        updatevm - domain to be checked
         """
         for untrusted_f in os.listdir(files_path):
             if not regex_pattern.match(untrusted_f):
-                raise Exception(
-                    'Domain ' + self.source + ' sent unexpected file'
-                )
+                raise Exception(f'Domain {updatevm} sent unexpected file')
             f = untrusted_f
             assert '/' not in f
             assert '\0' not in f
             assert '\x1b' not in f
             path_f = path.join(files_path, f)
             if os.path.islink(path_f) or not os.path.isfile(path_f):
-                raise Exception(
-                    'Domain ' + self.source + ' sent not regular file'
-                )
+                raise Exception(f'Domain {updatevm} sent not regular file')
 
     def _create_dirs(self, *args):
         """Method creates directories.
@@ -147,11 +140,9 @@ class FwupdReceiveUpdates:
                 os.chmod(file_path, 0o0775)
             elif os.stat(file_path).st_gid != qubes_gid:
                 print(
-                    WARNING_COLOR +
-                    "Warning: You should move a personal files from %s. "
-                    % file_path +
-                    "Cleaning cache will cause lose of the personal data!!" +
-                    WARNING_COLOR
+                    f"{WARNING_COLOR}Warning: You should move a personal files"
+                    f" from {file_path}. Cleaning cache will cause lose of "
+                    f"the personal data!!{WARNING_COLOR}"
                 )
 
     def _extract_archive(self, archive_path, output_path):
@@ -164,16 +155,15 @@ class FwupdReceiveUpdates:
         cmd_extract = [
             "cabextract",
             "-d",
-            "%s" % output_path,
-            "%s" % archive_path
+            f"{output_path}",
+            f"{archive_path}"
         ]
         shutil.copy(archive_path, FWUPD_DOM0_UPDATES_DIR)
         p = subprocess.Popen(cmd_extract, stdout=subprocess.PIPE)
         p.communicate()[0].decode('ascii')
         if p.returncode != 0:
             raise Exception(
-                'cabextract: Error while extracting %s.' %
-                archive_path
+                f'cabextract: Error while extracting {archive_path}.'
             )
 
     def _gpg_verification(self, file_path):
@@ -185,8 +175,8 @@ class FwupdReceiveUpdates:
         cmd_gpg = [
             "gpg",
             "--verify",
-            "%s.asc" % file_path,
-            "%s" % file_path,
+            f"{file_path}.asc",
+            f"{file_path}",
         ]
         p = subprocess.Popen(
             cmd_gpg,
@@ -200,7 +190,7 @@ class FwupdReceiveUpdates:
             raise Exception('gpg: Verification failed')
         if not GPG_LVFS_REGEX.search(verification.strip()):
             raise Exception(
-                'Domain updateVM sent not signed firmware: ' + file_path
+                f'Domain updateVM sent not signed firmware: {file_path}'
             )
 
     def handle_fw_update(self, updatevm, sha, filename):
@@ -236,7 +226,8 @@ class FwupdReceiveUpdates:
 
         self._verify_received(
             FWUPD_DOM0_UNTRUSTED_DIR,
-            fwupd_firmware_file_regex
+            fwupd_firmware_file_regex,
+            updatevm
         )
         self._check_shasum(dom0_firmware_untrusted_path, sha)
         untrusted_dir_name = filename.replace(".cab", "")
@@ -293,7 +284,8 @@ class FwupdReceiveUpdates:
 
         self._verify_received(
             FWUPD_DOM0_METADATA_DIR,
-            FWUPD_METADATA_FILES_REGEX
+            FWUPD_METADATA_FILES_REGEX,
+            updatevm
         )
         self._gpg_verification(FWUPD_DOM0_METADATA_FILE)
         os.umask(self.old_umask)
