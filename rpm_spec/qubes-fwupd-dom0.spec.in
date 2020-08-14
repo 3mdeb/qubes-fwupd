@@ -34,6 +34,7 @@ if xl list sys-firewall &>/dev/null; then
     qvm-run --pass-io sys-firewall 'gpg --import %PKI/GPG-KEY-Linux-Vendor-Firmware-Service'
 fi
 if xl list sys-whonix &>/dev/null; then
+    qvm-run --pass-io sys-whonix 'rm /home/user/QubesIncoming/dom0/GPG-KEY-Linux-Vendor-Firmware-Service'
     qvm-copy-to-vm sys-whonix %PKI/GPG-KEY-Linux-Vendor-Firmware-Service
     qvm-run --pass-io sys-whonix 'gpg --import /home/user/QubesIncoming/dom0/GPG-KEY-Linux-Vendor-Firmware-Service'
 fi

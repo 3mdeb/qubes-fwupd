@@ -76,6 +76,15 @@ def device_connected_usbvm():
         return "ColorHug2" in usbvm_device_info.read()
 
 
+def check_whonix_updatevm():
+    """Checks if the sys-whonix is running"""
+    if 'qubes' not in platform.release():
+        return False
+    q = qfwupd.QubesFwupdmgr()
+    q.check_usbvm()
+    return "sys-whonix" in q.output
+
+
 class TestQubesFwupdmgr(unittest.TestCase):
     def setUp(self):
         self.q = qfwupd.QubesFwupdmgr()
@@ -86,6 +95,18 @@ class TestQubesFwupdmgr(unittest.TestCase):
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_download_metadata(self):
         self.q._download_metadata()
+        self.assertTrue(
+            path.exists(FWUPD_DOM0_METADATA_FILE),
+            msg="Metadata update file does not exist",
+        )
+        self.assertTrue(
+            path.exists(FWUPD_DOM0_METADATA_SIGNATURE),
+            msg="Metadata signature does not exist",
+        )
+
+    @unittest.skipUnless(check_whonix_updatevm(), "Requires sys-whonix")
+    def test_download_metadata_whonix(self):
+        self.q._download_metadata(whonix=True)
         self.assertTrue(
             path.exists(FWUPD_DOM0_METADATA_FILE),
             msg="Metadata update file does not exist",
@@ -107,6 +128,15 @@ class TestQubesFwupdmgr(unittest.TestCase):
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_refresh_metadata_usbvm(self):
         self.q.refresh_metadata(usbvm=True)
+        self.assertEqual(
+            self.q.output,
+            'Successfully refreshed metadata manually\n',
+            msg="Metadata refresh failed."
+        )
+
+    @unittest.skipUnless(check_whonix_updatevm(), "Requires sys-whonix")
+    def test_refresh_metadata_whonix(self):
+        self.q.refresh_metadata(whonix=True)
         self.assertEqual(
             self.q.output,
             'Successfully refreshed metadata manually\n',
@@ -150,6 +180,19 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.q._download_firmware_updates(
             "https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab",
             "490be5c0b13ca4a3f169bf8bc682ba127b8f7b96"
+        )
+        update_path = path.join(
+            FWUPD_DOM0_UPDATES_DIR,
+            "0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7"
+        )
+        self.assertTrue(path.exists(update_path))
+
+    @unittest.skipUnless(check_whonix_updatevm(), "Requires sys-whonix")
+    def test_download_firmware_updates_whonix(self):
+        self.q._download_firmware_updates(
+            "https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab",
+            "490be5c0b13ca4a3f169bf8bc682ba127b8f7b96",
+            whonix=True,
         )
         update_path = path.join(
             FWUPD_DOM0_UPDATES_DIR,
@@ -247,8 +290,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "! [ -d %s ]" %
-            FWUPD_USBVM_METADATA_DIR
+            f"! [ -d {FWUPD_USBVM_METADATA_DIR} ]"
         ]
         p = subprocess.Popen(cmd_validate_metadata)
         p.wait()
@@ -261,8 +303,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "! [ -d %s ]" %
-            FWUPD_USBVM_UPDATES_DIR
+            f"! [ -d {FWUPD_USBVM_UPDATES_DIR} ]"
         ]
         p = subprocess.Popen(cmd_validate_udpdate)
         p.wait()
@@ -398,6 +439,63 @@ class TestQubesFwupdmgr(unittest.TestCase):
         new_version = downgrades[number]["Version"]
         self.assertTrue(
             ver.LooseVersion(old_version) > ver.LooseVersion(new_version)
+        )
+
+    @unittest.skipUnless(check_whonix_updatevm(), REQUIRED_DEV)
+    def test_update_n_downgrade_firmware_whonix(self):
+        old_version = None
+        self.q.check_fwupd_version(usbvm=True)
+        self.q._get_usbvm_devices()
+        with open(FWUPD_USBVM_LOG) as usbvm_device_info:
+            downgrades = self.q._parse_downgrades(usbvm_device_info.read())
+            for number, device in enumerate(downgrades):
+                if "Name" not in device:
+                    continue
+                if device["Name"] == "ColorHug2":
+                    old_version = device["Version"]
+                    break
+        if old_version is None:
+            self.fail("Test device not found")
+        user_input = [str(number+1), '1']
+        with patch('builtins.input', side_effect=user_input):
+            self.q.downgrade_firmware(usbvm=True, whonix=True)
+        self.q._get_usbvm_devices()
+        with open(FWUPD_USBVM_LOG) as usbvm_device_info:
+            downgrades = self.q._parse_downgrades(usbvm_device_info.read())
+        new_version = downgrades[number]["Version"]
+        self.assertTrue(
+            ver.LooseVersion(old_version) > ver.LooseVersion(new_version)
+        )
+        old_version = None
+        new_version = None
+        self.q.check_fwupd_version(usbvm=True)
+        self.q._get_usbvm_devices()
+        with open(FWUPD_USBVM_LOG) as usbvm_device_info:
+            self.q._parse_usbvm_updates(usbvm_device_info.read())
+            for number, device in enumerate(self.q.usbvm_updates_list):
+                if "Name" not in device:
+                    continue
+                if device["Name"] == "ColorHug2":
+                    old_version = device["Version"]
+                    break
+        if old_version is None:
+            self.fail("Test device not found")
+        user_input = [str(number+1), '1']
+        with patch('builtins.input', side_effect=user_input):
+            self.q.update_firmware(usbvm=True, whonix=True)
+        self.q._get_usbvm_devices()
+        with open(FWUPD_USBVM_LOG) as usbvm_device_info:
+            usbvm_devices_info_dict = json.loads(usbvm_device_info.read())
+        for device in usbvm_devices_info_dict["Devices"]:
+            if "Name" not in device:
+                continue
+            if device["Name"] == "ColorHug2":
+                new_version = device["Version"]
+                break
+        if new_version is None:
+            self.fail("Test device not found")
+        self.assertTrue(
+            ver.LooseVersion(old_version) < ver.LooseVersion(new_version)
         )
 
     @unittest.skipUnless(device_connected_usbvm(), REQUIRED_DEV)
@@ -631,8 +729,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "[ -d %s ]" %
-            FWUPD_USBVM_METADATA_DIR
+            f"[ -d {FWUPD_USBVM_METADATA_DIR} ]"
         ]
         p = subprocess.Popen(cmd_validate_metadata)
         p.wait()
@@ -645,8 +742,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "[ -d %s ]" %
-            FWUPD_USBVM_UPDATES_DIR
+            f"[ -d {FWUPD_USBVM_UPDATES_DIR} ]"
         ]
         p = subprocess.Popen(cmd_validate_udpdate)
         p.wait()
@@ -665,8 +761,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "[ -f %s ]" %
-            FWUPD_USBVM_METADATA_FILE
+            f"[ -f {FWUPD_USBVM_METADATA_FILE} ]"
         ]
         p = subprocess.Popen(cmd_validate_metadata_file)
         p.wait()
@@ -679,8 +774,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "[ -f %s ]" %
-            FWUPD_USBVM_METADATA_SIGNATURE
+            f"[ -f {FWUPD_USBVM_METADATA_SIGNATURE} ]"
         ]
         p = subprocess.Popen(cmd_validate_metadata_sig)
         p.wait()
@@ -713,8 +807,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "! [ -d %s ]" %
-            FWUPD_USBVM_METADATA_DIR
+            f"! [ -d {FWUPD_USBVM_METADATA_DIR} ]"
         ]
         p = subprocess.Popen(cmd_validate_metadata)
         p.wait()
@@ -727,8 +820,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "qvm-run",
             "--pass-io",
             "sys-usb",
-            "! [ -d %s ]" %
-            FWUPD_USBVM_UPDATES_DIR
+            f"! [ -d {FWUPD_USBVM_METADATA_DIR} ]"
         ]
         p = subprocess.Popen(cmd_validate_udpdate)
         p.wait()

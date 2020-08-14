@@ -65,6 +65,9 @@ while [ $# -gt 0 ]; do
         --update)
             UPDATE=1
             ;;
+        --whonix)
+            UPDATEVM=sys-whonix
+            ;;
         --url=*)
             URL=${1#--url=}
             FW_NAME=${1#--url=https://fwupd.org/downloads/}
@@ -99,6 +102,11 @@ fi
 
 if [[ -z "$UPDATE" && -z "$METADATA" ]]; then
     echo "No option chosen. Exiting..." >&2
+    exit 1
+fi
+
+if ! xl list $UPDATEVM &>/dev/null ; then
+    echo "$UPDATEVM is not running. Exiting..." >&2
     exit 1
 fi
 
