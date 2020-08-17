@@ -395,10 +395,10 @@ class QubesFwupdmgr:
         """
         decorator = "======================================================"
         if usbvm:
-            updates_list = updates_dict["usbvm"] + updates_dict["dom0"]
+            updates_list = updates_dict["dom0"] + updates_dict["usbvm"]
         else:
             updates_list = updates_dict["dom0"]
-        dom0_updates_num = len(updates_dict["dom0"])-1
+        dom0_updates_num = len(updates_dict["dom0"])
         if len(updates_list) == 0:
             print("No updates available.")
             return EXIT_CODES["NO_UPDATES"]
@@ -411,7 +411,7 @@ class QubesFwupdmgr:
             self._updates_crawler(
                 updates_dict["usbvm"],
                 usbvm=True,
-                prefix=dom0_updates_num+1
+                prefix=dom0_updates_num
             )
 
         while True:
@@ -423,10 +423,10 @@ class QubesFwupdmgr:
                 device_num = int(choice)-1
                 if 0 <= device_num < len(updates_list):
                     if not downgrade:
-                        if device_num > dom0_updates_num:
-                            return "usbvm", device_num
+                        if device_num >= dom0_updates_num:
+                            return "usbvm", device_num-dom0_updates_num
                         else:
-                            return "dom0", device_num-dom0_updates_num
+                            return "dom0", device_num
                     break
                 else:
                     raise ValueError()
@@ -456,11 +456,11 @@ class QubesFwupdmgr:
                         return EXIT_CODES["NO_UPDATES"]
                     downgrade_num = int(choice)-1
                     if 0 <= downgrade_num < len(releases):
-                        if device_num > dom0_updates_num:
-                            return "usbvm", device_num, downgrade_num
-                        else:
+                        if device_num >= dom0_updates_num:
                             device_abs_num = device_num - dom0_updates_num
-                            return "dom0", device_abs_num, downgrade_num
+                            return "usbvm", device_abs_num, downgrade_num
+                        else:
+                            return "dom0", device_num, downgrade_num
                     else:
                         raise ValueError()
                 except ValueError:

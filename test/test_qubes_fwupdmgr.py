@@ -255,7 +255,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             }
             key, choice = self.q._user_input(updates_dict, usbvm=True)
         self.assertEqual(key, "usbvm")
-        self.assertEqual(choice, 1)
+        self.assertEqual(choice, 0)
 
     def test_parse_parameters(self):
         self.q._parse_dom0_updates_info(UPDATE_INFO)
@@ -576,7 +576,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
                 usbvm=True
             )
         self.assertEqual(key, "usbvm")
-        self.assertEqual(device_choice, 1)
+        self.assertEqual(device_choice, 0)
         self.assertEqual(downgrade_choice, 1)
 
     def test_user_input_downgrade_dom0(self):
