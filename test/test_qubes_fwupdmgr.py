@@ -437,6 +437,8 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_update_n_downgrade_firmware_whonix(self):
         old_version = None
         self.q.check_fwupd_version(usbvm=True)
+        self.q._get_dom0_devices()
+        dom0_downgrades = self.q._parse_downgrades(self.q.dom0_devices_info)
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
             downgrades = self.q._parse_downgrades(usbvm_device_info.read())
@@ -448,7 +450,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
                     break
         if old_version is None:
             self.fail("Test device not found")
-        user_input = [str(number+1), '1']
+        user_input = [str(number+1+len(dom0_downgrades)), '1']
         with patch('builtins.input', side_effect=user_input):
             self.q.downgrade_firmware(usbvm=True, whonix=True)
         self.q._get_usbvm_devices()
@@ -461,6 +463,8 @@ class TestQubesFwupdmgr(unittest.TestCase):
         old_version = None
         new_version = None
         self.q.check_fwupd_version(usbvm=True)
+        self.q._get_dom0_updates()
+        self.q._parse_dom0_updates_info(self.q.dom0_updates_info)
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
             self.q._parse_usbvm_updates(usbvm_device_info.read())
@@ -472,7 +476,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
                     break
         if old_version is None:
             self.fail("Test device not found")
-        user_input = [str(number+1), '1']
+        user_input = [str(number+1+len(self.q.dom0_updates_list)), '1']
         with patch('builtins.input', side_effect=user_input):
             self.q.update_firmware(usbvm=True, whonix=True)
         self.q._get_usbvm_devices()
@@ -494,6 +498,8 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_downgrade_firmware_usbvm(self):
         old_version = None
         self.q.check_fwupd_version(usbvm=True)
+        self.q._get_dom0_devices()
+        dom0_downgrades = self.q._parse_downgrades(self.q.dom0_devices_info)
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
             downgrades = self.q._parse_downgrades(usbvm_device_info.read())
@@ -505,7 +511,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
                     break
         if old_version is None:
             self.fail("Test device not found")
-        user_input = [str(number+1), '1']
+        user_input = [str(number+1+len(dom0_downgrades)), '1']
         with patch('builtins.input', side_effect=user_input):
             self.q.downgrade_firmware(usbvm=True)
         self.q._get_usbvm_devices()
@@ -646,6 +652,8 @@ class TestQubesFwupdmgr(unittest.TestCase):
         old_version = None
         new_version = None
         self.q.check_fwupd_version(usbvm=True)
+        self.q._get_dom0_updates()
+        self.q._parse_dom0_updates_info(self.q.dom0_updates_info)
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
             self.q._parse_usbvm_updates(usbvm_device_info.read())
@@ -657,7 +665,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
                     break
         if old_version is None:
             self.fail("Test device not found")
-        user_input = [str(number+1), '1']
+        user_input = [str(number+1+len(self.q.dom0_updates_list)), '1']
         with patch('builtins.input', side_effect=user_input):
             self.q.update_firmware(usbvm=True)
         self.q._get_usbvm_devices()
