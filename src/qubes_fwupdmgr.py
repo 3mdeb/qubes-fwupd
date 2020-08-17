@@ -76,7 +76,11 @@ METADATA_REFRESH_REGEX = re.compile(
 HELP = {
     "Usage": [
         {
-            "qubes-fwupd [OPTION…]": "\n",
+            "qubes-fwupd [OPTION…][FLAG..]": "\n",
+        }
+    ],
+    "Options": [
+        {
             "get-devices": "Get all devices that support firmware updates",
             "get-updates": "Gets the list of updates for connected hardware",
             "refresh": "Refresh metadata from remote server",
@@ -85,11 +89,16 @@ HELP = {
             "clean": "Deletes all cached update files"
         }
     ],
+    "Flags": [
+        {
+            "--whonix": "Downloads firmware updates via Tor"
+        }
+    ],
     "Help": [
         {
             "-h --help": "Show help options"
         }
-    ]
+    ],
 }
 
 EXIT_CODES = {
@@ -491,6 +500,14 @@ class QubesFwupdmgr:
 
     def _read_dmi(self):
         """Reads BIOS information from DMI."""
+        cmd_dmidecode_version = [
+            "dmidecode",
+            "-s",
+            "bios-version"
+        ]
+        p = subprocess.Popen(cmd_dmidecode_version, stdout=subprocess.PIPE)
+        p.wait()
+        self.dmi_version = p.communicate()[0].decode()
         cmd_dmidecode = [
             "dmidecode",
             "-t",
@@ -519,18 +536,10 @@ class QubesFwupdmgr:
             raise ValueError("No vendor information in firmware metainfo.")
         if vendor not in dmi_info:
             raise ValueError("Wrong firmware provider.")
-        metainfo_ver = root.find("releases").find("release").attrib['version']
-        if version != metainfo_ver:
-            raise ValueError("Wrong firmware version.")
-        # Parsing version from dmidecode output
-        for line in dmi_info.split("\n"):
-            if 'Version: ' in line:
-                dmi_ver = line.split(': ')[1]
-        if not downgrade:
-            if l_ver(metainfo_ver) < l_ver(dmi_ver):
-                raise ValueError(
-                    f"{metainfo_ver} < {dmi_ver} Downgrade not allowed"
-                )
+        if not downgrade and l_ver(version) <= l_ver(self.dmi_version):
+            raise ValueError(
+                f"{version} < {self.dmi_version} Downgrade not allowed"
+            )
 
     def _get_dom0_devices(self):
         """Gathers information about devices connected in dom0."""

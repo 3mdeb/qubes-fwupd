@@ -43,6 +43,7 @@ if [ "$1" = "--help" ]; then
     echo "    --update     inits firmware update files download"
     echo "    --url=       firmware update url"
     echo "    --sha=       firmware update sha1 checksum"
+    echo "    --whonix     download updates via Tor"
     exit
 fi
 

@@ -382,6 +382,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         return_value=DMI_DECODE
     )
     def test_verify_dmi(self, output):
+        self.q.dmi_version = "P.1.0"
         self.q._verify_dmi("test/logs/", "P1.1")
 
     @patch(
@@ -390,6 +391,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     )
     def test_verify_dmi_wrong_vendor(self, output):
         with self.assertRaises(ValueError) as wrong_vendor:
+            self.q.dmi_version = "P.1.0"
             self.q._verify_dmi("test/logs/metainfo_name/", "P1.1")
         self.assertTrue(
             "Wrong firmware provider." in str(wrong_vendor.exception)
@@ -399,22 +401,12 @@ class TestQubesFwupdmgr(unittest.TestCase):
         'src.qubes_fwupdmgr.QubesFwupdmgr._read_dmi',
         return_value=DMI_DECODE
     )
-    def test_verify_dmi_argument_version(self, output):
-        with self.assertRaises(ValueError) as argument_version:
-            self.q._verify_dmi("test/logs/", "P1.0")
-        self.assertTrue(
-            "Wrong firmware version." in str(argument_version.exception)
-        )
-
-    @patch(
-        'src.qubes_fwupdmgr.QubesFwupdmgr._read_dmi',
-        return_value=DMI_DECODE
-    )
     def test_verify_dmi_version(self, output):
+        self.q.dmi_version = "P1.0"
         with self.assertRaises(ValueError) as downgrade:
             self.q._verify_dmi("test/logs/metainfo_version/", "P0.1")
         self.assertTrue(
-            "P0.1 < P1.00 Downgrade not allowed" in str(downgrade.exception)
+            "P0.1 < P1.0 Downgrade not allowed" in str(downgrade.exception)
         )
 
     @unittest.skipUnless(device_connected_dom0(), REQUIRED_DEV)
