@@ -918,7 +918,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_bios_refresh_metadata(self):
         Path(BIOS_UPDATE_FLAG).touch(mode=0o644, exist_ok=True)
-        self.q.refresh_metadata_after_bios_update()
+        self.q.refresh_metadata_after_bios_update(usbvm=True)
         self.assertEqual(
             self.q.output,
             'Successfully refreshed metadata manually\n',

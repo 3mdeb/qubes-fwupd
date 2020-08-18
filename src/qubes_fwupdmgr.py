@@ -691,6 +691,7 @@ class QubesFwupdmgr:
         self._parse_parameters(update_dict, vm_name, choice)
         self._download_firmware_updates(self.url, self.sha, whonix=whonix)
         if self.name == "System Firmware":
+            Path(BIOS_UPDATE_FLAG).touch(mode=0o644, exist_ok=True)
             extracted_path = self.arch_path.replace(".cab", "")
             self._verify_dmi(extracted_path, self.version)
         if vm_name == "dom0":
