@@ -25,6 +25,8 @@ import shutil
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
+
+from pathlib import Path
 from distutils.version import LooseVersion as l_ver
 
 FWUPD_QUBES_DIR = "/usr/share/qubes-fwupd"
@@ -68,6 +70,7 @@ FWUPDAGENT_NEW = "/bin/fwupdagent"
 # version <= 1.3.8
 FWUPDAGENT_OLD = "/usr/libexec/fwupd/fwupdagent"
 USBVM_N = "sys-usb"
+BIOS_UPDATE_FLAG = os.path.join(FWUPD_USBVM_DIR, "bios_update")
 
 METADATA_REFRESH_REGEX = re.compile(
     r"^Successfully refreshed metadata manually$"
@@ -688,15 +691,14 @@ class QubesFwupdmgr:
         self._parse_parameters(update_dict, vm_name, choice)
         self._download_firmware_updates(self.url, self.sha, whonix=whonix)
         if self.name == "System Firmware":
-            path = self.arch_path.replace(".cab", "")
-            self._verify_dmi(path, self.version)
+            extracted_path = self.arch_path.replace(".cab", "")
+            self._verify_dmi(extracted_path, self.version)
         if vm_name == "dom0":
             self._install_dom0_firmware_update(self.arch_path)
         if vm_name == "usbvm":
             self._validate_usbvm_dirs()
             self._copy_firmware_updates(self.arch_name)
             self._install_usbvm_firmware_update(self.arch_name)
-        self._delete_trusted_directory()
 
     def _parse_downgrades(self, device_list):
         """Parses information about possible downgrades.
@@ -787,9 +789,10 @@ class QubesFwupdmgr:
             whonix=whonix
         )
         if downgrade_dict[vm_name][device_choice]["Name"] == "System Firmware":
-            path = self.arch_path.replace(".cab", "")
+            Path(BIOS_UPDATE_FLAG).touch(mode=0o644, exist_ok=True)
+            extarcted_path = self.arch_path.replace(".cab", "")
             self._verify_dmi(
-                path,
+                extarcted_path,
                 downgrade_dict[vm_name][device_choice]["Version"],
                 downgrade=True
             )
@@ -800,13 +803,6 @@ class QubesFwupdmgr:
             self._copy_firmware_updates(self.arch_name)
             self._validate_usbvm_archive(self.arch_name, downgrade_sha)
             self._install_usbvm_firmware_downgrade(self.arch_name)
-            self._delete_trusted_directory()
-
-    def _delete_trusted_directory(self):
-        """Delete trusted directory and archive file if it's named 'trusted'"""
-        if self.arch_name == "trusted.cab":
-            os.remove(self.arch_path)
-            shutil.rmtree(self.arch_path.replace(".cab", ""))
 
     def _output_crawler(self, updev_dict, level, help_f=False, dom0=True):
         """Prints device and updates information as a tree.
@@ -969,6 +965,33 @@ class QubesFwupdmgr:
             raise Exception("fwudp-qubes: Firmware downgrade failed")
         return USBVM_N in self.output
 
+    def trusted_cleanup(self, usbvm=False):
+        """Deletes trusted directory.
+
+        Keyword arguments:
+        usbvm -- usbvm support flag
+        """
+        trusted_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, "trusted.cab")
+        if os.path.exists(trusted_path):
+            os.remove(trusted_path)
+            shutil.rmtree(trusted_path.replace(".cab", ""))
+        if usbvm:
+            self._clean_usbvm()
+
+    def refresh_metadata_after_bios_update(self, usbvm=False):
+        """Refreshes metadata after bios update
+
+        Keyword arguments:
+        usbvm -- usbvm support flag
+        """
+        if os.path.exists(BIOS_UPDATE_FLAG):
+            print("BIOS was updated. Refreshing metadata...")
+            if "--whonix" in sys.argv:
+                self.refresh_metadata(usbvm=usbvm, whonix=True)
+            else:
+                self.refresh_metadata(usbvm=usbvm)
+            os.remove(BIOS_UPDATE_FLAG)
+
 
 def main():
     if os.geteuid() != 0:
@@ -977,6 +1000,8 @@ def main():
     q = QubesFwupdmgr()
     sys_usb = q.check_usbvm()
     q.check_fwupd_version(usbvm=sys_usb)
+    q.trusted_cleanup(usbvm=sys_usb)
+    q.refresh_metadata_after_bios_update(usbvm=sys_usb)
     if not os.path.exists(FWUPD_DOM0_DIR):
         q.refresh_metadata(usbvm=sys_usb)
     if len(sys.argv) < 2:

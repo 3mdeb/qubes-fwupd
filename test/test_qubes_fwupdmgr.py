@@ -2,37 +2,38 @@
 import distutils.version as ver
 import json
 import unittest
-import os.path as path
+import os
 import src.qubes_fwupdmgr as qfwupd
 import subprocess
 import sys
 import io
 import platform
+from pathlib import Path
 from test.fwupd_logs import UPDATE_INFO, GET_DEVICES, DMI_DECODE
 from test.fwupd_logs import GET_DEVICES_NO_UPDATES, GET_DEVICES_NO_VERSION
 from unittest.mock import patch
 
 FWUPD_DOM0_DIR = "/root/.cache/fwupd"
-FWUPD_DOM0_UPDATES_DIR = path.join(FWUPD_DOM0_DIR, "updates")
-FWUPD_DOM0_UNTRUSTED_DIR = path.join(FWUPD_DOM0_UPDATES_DIR, "untrusted")
-FWUPD_USBVM_LOG = path.join(FWUPD_DOM0_DIR, "usbvm-devices.log")
-FWUPD_DOM0_METADATA_DIR = path.join(FWUPD_DOM0_DIR, "metadata")
-FWUPD_DOM0_METADATA_SIGNATURE = path.join(
+FWUPD_DOM0_UPDATES_DIR = os.path.join(FWUPD_DOM0_DIR, "updates")
+FWUPD_DOM0_UNTRUSTED_DIR = os.path.join(FWUPD_DOM0_UPDATES_DIR, "untrusted")
+FWUPD_USBVM_LOG = os.path.join(FWUPD_DOM0_DIR, "usbvm-devices.log")
+FWUPD_DOM0_METADATA_DIR = os.path.join(FWUPD_DOM0_DIR, "metadata")
+FWUPD_DOM0_METADATA_SIGNATURE = os.path.join(
     FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz.asc"
 )
-FWUPD_DOM0_METADATA_FILE = path.join(
+FWUPD_DOM0_METADATA_FILE = os.path.join(
     FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz"
 )
 FWUPD_USBVM_DIR = "/home/user/.cache/fwupd"
-FWUPD_USBVM_UPDATES_DIR = path.join(FWUPD_USBVM_DIR, "updates")
-FWUPD_USBVM_METADATA_DIR = path.join(FWUPD_USBVM_DIR, "metadata")
-FWUPD_USBVM_METADATA_SIGNATURE = path.join(
+FWUPD_USBVM_UPDATES_DIR = os.path.join(FWUPD_USBVM_DIR, "updates")
+FWUPD_USBVM_METADATA_DIR = os.path.join(FWUPD_USBVM_DIR, "metadata")
+FWUPD_USBVM_METADATA_SIGNATURE = os.path.join(
     FWUPD_USBVM_METADATA_DIR,
     "firmware.xml.gz.asc"
 )
-FWUPD_USBVM_METADATA_FILE = path.join(
+FWUPD_USBVM_METADATA_FILE = os.path.join(
     FWUPD_USBVM_METADATA_DIR,
     "firmware.xml.gz"
 )
@@ -41,6 +42,7 @@ REQUIRED_USBVM = "Requires sys-usb"
 XL_LIST_LOG = "Name                                        ID   Mem VCPUs	State	Time(s)"
 USBVM_N = "sys-usb"
 FWUPDMGR = "/bin/fwupdmgr"
+BIOS_UPDATE_FLAG = os.path.join(FWUPD_USBVM_DIR, "bios_update")
 
 
 def check_usbvm():
@@ -69,7 +71,7 @@ def device_connected_usbvm():
     q = qfwupd.QubesFwupdmgr()
     q.check_fwupd_version(usbvm=True)
     q._validate_usbvm_dirs()
-    if not path.exists(FWUPD_DOM0_DIR):
+    if not os.path.exists(FWUPD_DOM0_DIR):
         q.refresh_metadata()
     q._get_usbvm_devices()
     with open(FWUPD_USBVM_LOG) as usbvm_device_info:
@@ -96,11 +98,11 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_download_metadata(self):
         self.q._download_metadata()
         self.assertTrue(
-            path.exists(FWUPD_DOM0_METADATA_FILE),
+            os.path.exists(FWUPD_DOM0_METADATA_FILE),
             msg="Metadata update file does not exist",
         )
         self.assertTrue(
-            path.exists(FWUPD_DOM0_METADATA_SIGNATURE),
+            os.path.exists(FWUPD_DOM0_METADATA_SIGNATURE),
             msg="Metadata signature does not exist",
         )
 
@@ -108,11 +110,11 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_download_metadata_whonix(self):
         self.q._download_metadata(whonix=True)
         self.assertTrue(
-            path.exists(FWUPD_DOM0_METADATA_FILE),
+            os.path.exists(FWUPD_DOM0_METADATA_FILE),
             msg="Metadata update file does not exist",
         )
         self.assertTrue(
-            path.exists(FWUPD_DOM0_METADATA_SIGNATURE),
+            os.path.exists(FWUPD_DOM0_METADATA_SIGNATURE),
             msg="Metadata signature does not exist",
         )
 
@@ -181,11 +183,11 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab",
             "490be5c0b13ca4a3f169bf8bc682ba127b8f7b96"
         )
-        update_path = path.join(
+        update_path = os.path.join(
             FWUPD_DOM0_UPDATES_DIR,
             "0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7"
         )
-        self.assertTrue(path.exists(update_path))
+        self.assertTrue(os.path.exists(update_path))
 
     @unittest.skipUnless(check_whonix_updatevm(), "Requires sys-whonix")
     def test_download_firmware_updates_whonix(self):
@@ -194,11 +196,11 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "490be5c0b13ca4a3f169bf8bc682ba127b8f7b96",
             whonix=True,
         )
-        update_path = path.join(
+        update_path = os.path.join(
             FWUPD_DOM0_UPDATES_DIR,
             "0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7"
         )
-        self.assertTrue(path.exists(update_path))
+        self.assertTrue(os.path.exists(update_path))
 
     def test_user_input_empty_dict(self):
         downgrade_dict = {
@@ -277,15 +279,15 @@ class TestQubesFwupdmgr(unittest.TestCase):
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_clean_cache_dom0(self):
         self.q.clean_cache()
-        self.assertFalse(path.exists(FWUPD_DOM0_METADATA_DIR))
-        self.assertFalse(path.exists(FWUPD_DOM0_UNTRUSTED_DIR))
+        self.assertFalse(os.path.exists(FWUPD_DOM0_METADATA_DIR))
+        self.assertFalse(os.path.exists(FWUPD_DOM0_UNTRUSTED_DIR))
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_clean_cache_dom0_n_usbvm(self):
         self.q._validate_usbvm_dirs()
         self.q.clean_cache(usbvm=True)
-        self.assertFalse(path.exists(FWUPD_DOM0_METADATA_DIR))
-        self.assertFalse(path.exists(FWUPD_DOM0_UNTRUSTED_DIR))
+        self.assertFalse(os.path.exists(FWUPD_DOM0_METADATA_DIR))
+        self.assertFalse(os.path.exists(FWUPD_DOM0_UNTRUSTED_DIR))
         cmd_validate_metadata = [
             "qvm-run",
             "--pass-io",
@@ -687,7 +689,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_get_usbvm_devices(self):
         self.q.check_fwupd_version(usbvm=True)
         self.q._get_usbvm_devices()
-        self.assertTrue(path.exists(FWUPD_USBVM_LOG))
+        self.assertTrue(os.path.exists(FWUPD_USBVM_LOG))
 
     def test_parse_usbvm_updates(self):
         self.q._parse_usbvm_updates(GET_DEVICES)
@@ -853,7 +855,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "--pass-io",
             "sys-usb",
             "[ -d %s ]" %
-            path.join(FWUPD_USBVM_UPDATES_DIR, name.replace(".cab", ""))
+            os.path.join(FWUPD_USBVM_UPDATES_DIR, name.replace(".cab", ""))
         ]
         p = subprocess.Popen(cmd_validate_udpdate)
         p.wait()
@@ -912,6 +914,26 @@ class TestQubesFwupdmgr(unittest.TestCase):
             )
         else:
             self.assertEqual(self.q.fwupdagent_usbvm, "/bin/fwupdagent")
+
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
+    def test_refresh_metadata_after_bios_update(self):
+        Path(BIOS_UPDATE_FLAG).touch(mode=0o644, exist_ok=True)
+        self.q.refresh_metadata_after_bios_update()
+        self.assertEqual(
+            self.q.output,
+            'Successfully refreshed metadata manually\n',
+            msg="Metadata refresh failed."
+        )
+
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
+    def test_trusted_cleanup(self):
+        trusted_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, "trusted.cab")
+        if not os.path.exists(trusted_path):
+            Path(trusted_path).touch(mode=0o644, exist_ok=True)
+            os.mkdir(trusted_path.replace(".cab", ""))
+        self.q.refresh_metadata_after_bios_update()
+        self.assertFalse(os.path.exists(trusted_path))
+        self.assertFalse(os.path.exists(trusted_path.replace(".cab", "")))
 
 
 if __name__ == '__main__':
