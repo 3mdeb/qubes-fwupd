@@ -236,6 +236,11 @@ class FwupdReceiveUpdates:
         file_path = glob.glob(signature_name)
         self._gpg_verification(file_path[0].replace(".asc", ""))
         os.umask(self.old_umask)
+        if untrusted_dir_name == "untrusted":
+            untrusted_dir_name = "trusted"
+            verified_file = path.join(FWUPD_DOM0_UPDATES_DIR, filename)
+            trusted_file = path.join(FWUPD_DOM0_UPDATES_DIR, "trusted.cab")
+            shutil.move(verified_file, trusted_file)
         dir_name = path.join(FWUPD_DOM0_UPDATES_DIR, untrusted_dir_name)
         shutil.move(output_path, dir_name)
         shutil.rmtree(FWUPD_DOM0_UNTRUSTED_DIR)
