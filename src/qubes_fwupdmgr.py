@@ -73,6 +73,8 @@ METADATA_REFRESH_REGEX = re.compile(
     r"^Successfully refreshed metadata manually$"
 )
 
+SPECIAL_CHAR_REGEX = re.compile(r'%20|&|\||#')
+
 HELP = {
     "Usage": [
         {
@@ -366,11 +368,11 @@ class QubesFwupdmgr:
         sha -- SHA1 checksum of the firmware update archive
         whonix -- Flag enforces downloading the updates via Tor
         """
-        name = url.replace(FWUPD_DOWNLOAD_PREFIX, "")
-        update_path = os.path.join(
-            FWUPD_DOM0_UPDATES_DIR,
-            name.replace(".cab", "")
-        )
+        self.arch_name = url.replace(FWUPD_DOWNLOAD_PREFIX, "")
+        if SPECIAL_CHAR_REGEX.search(self.arch_name):
+            self.arch_name = "trusted.cab"
+        self.arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, self.arch_name)
+        update_path = self.arch_path.replace(".cab", "")
         cmd_fwdownload = [
             FWUPD_DOM0_UPDATE,
             "--update",
@@ -685,17 +687,16 @@ class QubesFwupdmgr:
         vm_name, choice = ret_input
         self._parse_parameters(update_dict, vm_name, choice)
         self._download_firmware_updates(self.url, self.sha, whonix=whonix)
-        arch_name = self.url.replace(FWUPD_DOWNLOAD_PREFIX, "")
-        arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, arch_name)
         if self.name == "System Firmware":
-            path = arch_path.replace(".cab", "")
+            path = self.arch_path.replace(".cab", "")
             self._verify_dmi(path, self.version)
         if vm_name == "dom0":
-            self._install_dom0_firmware_update(arch_path)
+            self._install_dom0_firmware_update(self.arch_path)
         if vm_name == "usbvm":
             self._validate_usbvm_dirs()
-            self._copy_firmware_updates(arch_name)
-            self._install_usbvm_firmware_update(arch_name)
+            self._copy_firmware_updates(self.arch_name)
+            self._install_usbvm_firmware_update(self.arch_name)
+        self._delete_trusted_directory()
 
     def _parse_downgrades(self, device_list):
         """Parses information about possible downgrades.
@@ -785,22 +786,27 @@ class QubesFwupdmgr:
             downgrade_sha,
             whonix=whonix
         )
-        arch_name = downgrade_url.replace(FWUPD_DOWNLOAD_PREFIX, "")
-        arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, arch_name)
         if downgrade_dict[vm_name][device_choice]["Name"] == "System Firmware":
-            path = arch_path.replace(".cab", "")
+            path = self.arch_path.replace(".cab", "")
             self._verify_dmi(
                 path,
                 downgrade_dict[vm_name][device_choice]["Version"],
                 downgrade=True
             )
         if vm_name == "dom0":
-            self._install_dom0_firmware_downgrade(arch_path)
+            self._install_dom0_firmware_downgrade(self.arch_path)
         if vm_name == "usbvm":
             self._validate_usbvm_dirs()
-            self._copy_firmware_updates(arch_name)
-            self._validate_usbvm_archive(arch_name, downgrade_sha)
-            self._install_usbvm_firmware_downgrade(arch_name)
+            self._copy_firmware_updates(self.arch_name)
+            self._validate_usbvm_archive(self.arch_name, downgrade_sha)
+            self._install_usbvm_firmware_downgrade(self.arch_name)
+            self._delete_trusted_directory()
+
+    def _delete_trusted_directory(self):
+        """Delete trusted directory and archive file if it's named 'trusted'"""
+        if self.arch_name == "trusted.cab":
+            os.remove(self.arch_path)
+            shutil.rmtree(self.arch_path.replace(".cab", ""))
 
     def _output_crawler(self, updev_dict, level, help_f=False, dom0=True):
         """Prints device and updates information as a tree.
