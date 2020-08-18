@@ -42,7 +42,7 @@ REQUIRED_USBVM = "Requires sys-usb"
 XL_LIST_LOG = "Name                                        ID   Mem VCPUs	State	Time(s)"
 USBVM_N = "sys-usb"
 FWUPDMGR = "/bin/fwupdmgr"
-BIOS_UPDATE_FLAG = os.path.join(FWUPD_USBVM_DIR, "bios_update")
+BIOS_UPDATE_FLAG = os.path.join(FWUPD_DOM0_DIR, "bios_update")
 
 
 def check_usbvm():
@@ -916,7 +916,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             self.assertEqual(self.q.fwupdagent_usbvm, "/bin/fwupdagent")
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
-    def test_refresh_metadata_after_bios_update(self):
+    def test_bios_refresh_metadata(self):
         Path(BIOS_UPDATE_FLAG).touch(mode=0o644, exist_ok=True)
         self.q.refresh_metadata_after_bios_update()
         self.assertEqual(
@@ -931,7 +931,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         if not os.path.exists(trusted_path):
             Path(trusted_path).touch(mode=0o644, exist_ok=True)
             os.mkdir(trusted_path.replace(".cab", ""))
-        self.q.refresh_metadata_after_bios_update()
+        self.q.trusted_cleanup(usbvm=True)
         self.assertFalse(os.path.exists(trusted_path))
         self.assertFalse(os.path.exists(trusted_path.replace(".cab", "")))
 

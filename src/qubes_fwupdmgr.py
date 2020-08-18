@@ -70,7 +70,7 @@ FWUPDAGENT_NEW = "/bin/fwupdagent"
 # version <= 1.3.8
 FWUPDAGENT_OLD = "/usr/libexec/fwupd/fwupdagent"
 USBVM_N = "sys-usb"
-BIOS_UPDATE_FLAG = os.path.join(FWUPD_USBVM_DIR, "bios_update")
+BIOS_UPDATE_FLAG = os.path.join(FWUPD_DOM0_DIR, "bios_update")
 
 METADATA_REFRESH_REGEX = re.compile(
     r"^Successfully refreshed metadata manually$"
