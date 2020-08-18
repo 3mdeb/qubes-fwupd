@@ -58,6 +58,25 @@ if [ "$CLEAN" == "1" ]; then
     rm -rf $FWUPD_UPDATEVM_DIR/updates/*
 fi
 
+if [[ "$URL" == *"--and--"* ]]; then
+    URL=${URL//--and--/&}
+    FW_NAME="untrusted.cab"
+fi
+
+if [[ "$URL" == *"%20"* ]]; then
+    FW_NAME="untrusted.cab"
+fi
+
+if [[ "$URL" == *"--or--"* ]]; then
+    URL=${URL//--or--/|}
+    FW_NAME="untrusted.cab"
+fi
+
+if [[ "$URL" == *"--hash--"* ]]; then
+    URL=${URL//--hash--/#}
+    FW_NAME="untrusted.cab"
+fi
+
 if [ "$METADATA" == "1" ]; then
     echo "Downloading metadata."
     rm -rf $FWUPD_UPDATEVM_DIR/metadata/*
@@ -79,7 +98,7 @@ if [ "$UPDATE" == "1" ]; then
     echo "$SHASUM  $FWUPD_UPDATEVM_DIR/updates/$FW_NAME" \
         > $FWUPD_UPDATEVM_DIR/updates/sha1-$FW_NAME
     echo "Downloading firmware update $FW_NAME"
-    wget -P $FWUPD_UPDATEVM_DIR/updates $URL
+    wget -O $FWUPD_UPDATEVM_DIR/updates/$FW_NAME $URL
     sha1sum -c $FWUPD_UPDATEVM_DIR/updates/sha1-$FW_NAME
     if [ ! $? -eq 0 ]; then
         rm -f $FWUPD_UPDATEVM_DIR/updates/*

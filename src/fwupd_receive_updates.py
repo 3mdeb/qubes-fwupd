@@ -62,7 +62,6 @@ FWUPD_UPDATEVM_METADATA_JCAT = path.join(
     "firmware.xml.gz.jcat"
 )
 
-FWUPD_FIRMWARE_FLAG_REGEX = re.compile(r"^updateflag-[A-Za-z0-9]{1,128}\.cab")
 FWUPD_METADATA_FLAG_REGEX = re.compile(r"^metaflag")
 FWUPD_METADATA_FILES_REGEX = re.compile(
     r"^firmware.xml.gz.?[aj]?[sc]?[ca]?t?$"
