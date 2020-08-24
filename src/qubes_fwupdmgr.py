@@ -791,9 +791,9 @@ class QubesFwupdmgr:
         )
         if downgrade_dict[vm_name][device_choice]["Name"] == "System Firmware":
             Path(BIOS_UPDATE_FLAG).touch(mode=0o644, exist_ok=True)
-            extarcted_path = self.arch_path.replace(".cab", "")
+            extracted_path = self.arch_path.replace(".cab", "")
             self._verify_dmi(
-                extarcted_path,
+                extracted_path,
                 downgrade_dict[vm_name][device_choice]["Version"],
                 downgrade=True
             )
