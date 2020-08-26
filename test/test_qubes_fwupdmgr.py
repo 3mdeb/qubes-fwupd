@@ -189,6 +189,18 @@ class TestQubesFwupdmgr(unittest.TestCase):
         )
         self.assertTrue(os.path.exists(update_path))
 
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
+    def test_download_firmware_special_char(self):
+        self.q._download_firmware_updates(
+            "https://fwupd.org/downloads/bc334d8b098f2e91603c5f7dfdc837fb01797bbe-Dell%20XPS%2015%209560&Precision%205520%20System%20BIOS_Ver.1.18.0.cab",
+            "ab33c392b0703946616181deadfd1cbb5b0c6cd4"
+        )
+        update_path = os.path.join(
+            FWUPD_DOM0_UPDATES_DIR,
+            "trusted"
+        )
+        self.assertTrue(os.path.exists(update_path))
+
     @unittest.skipUnless(check_whonix_updatevm(), "Requires sys-whonix")
     def test_download_firmware_updates_whonix(self):
         self.q._download_firmware_updates(
