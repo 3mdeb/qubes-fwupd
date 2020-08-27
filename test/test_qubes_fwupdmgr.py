@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-import distutils.version as ver
 import json
 import unittest
 import os
@@ -8,6 +7,7 @@ import subprocess
 import sys
 import io
 import platform
+from distutils.version import LooseVersion as l_ver
 from pathlib import Path
 from test.fwupd_logs import UPDATE_INFO, GET_DEVICES, DMI_DECODE
 from test.fwupd_logs import GET_DEVICES_NO_UPDATES, GET_DEVICES_NO_VERSION
@@ -153,6 +153,16 @@ class TestQubesFwupdmgr(unittest.TestCase):
             "Devices" in self.q.dom0_updates_info,
             msg="Getting available updates failed"
         )
+
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
+    def test_get_dom0_updates_old(self):
+        self.q.fwupdagent_dom0 = None
+        self.q._get_dom0_updates()
+        self.assertIsNotNone(self.q.dom0_updates_info)
+
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
+    def test_get_usbvm_updates_old(self):
+        self.q._get_usbvm_updates_old()
 
     def test_parse_updates_info(self):
         self.q._parse_dom0_updates_info(UPDATE_INFO)
@@ -345,6 +355,12 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.assertIsNotNone(self.q.dom0_devices_info)
 
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
+    def test_get_dom0_devices_old(self):
+        self.q.fwupdagent_dom0 = None
+        self.q._get_dom0_devices()
+        self.assertIsNotNone(self.q.dom0_devices_info)
+
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_get_devices_qubes_dom0(self):
         get_devices_output = io.StringIO()
         sys.stdout = get_devices_output
@@ -444,8 +460,14 @@ class TestQubesFwupdmgr(unittest.TestCase):
         downgrades = self.q._parse_downgrades(self.q.dom0_devices_info)
         new_version = downgrades[number]["Version"]
         self.assertTrue(
-            ver.LooseVersion(old_version) > ver.LooseVersion(new_version)
+            l_ver(old_version) > l_ver(new_version)
         )
+
+    def test_downgrade_firmware_old_qubes(self):
+        self.q.fwupdagent_usbvm = None
+        self.q.fwupdagent_dom0 = None
+        return_code = self.q.downgrade_firmware(usbvm=True, whonix=True)
+        self.assertEqual(return_code, 99)
 
     @unittest.skipUnless(
         check_whonix_updatevm() and device_connected_usbvm(),
@@ -475,7 +497,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             downgrades = self.q._parse_downgrades(usbvm_device_info.read())
         new_version = downgrades[number]["Version"]
         self.assertTrue(
-            ver.LooseVersion(old_version) > ver.LooseVersion(new_version)
+            l_ver(old_version) > l_ver(new_version)
         )
         old_version = None
         new_version = None
@@ -508,7 +530,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         if new_version is None:
             self.fail("Test device not found")
         self.assertTrue(
-            ver.LooseVersion(old_version) < ver.LooseVersion(new_version)
+            l_ver(old_version) < l_ver(new_version)
         )
 
     @unittest.skipUnless(device_connected_usbvm(), REQUIRED_DEV)
@@ -536,7 +558,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
             downgrades = self.q._parse_downgrades(usbvm_device_info.read())
         new_version = downgrades[number]["Version"]
         self.assertTrue(
-            ver.LooseVersion(old_version) > ver.LooseVersion(new_version)
+            l_ver(old_version) > l_ver(new_version)
         )
 
     def test_parse_downgrades(self):
@@ -584,6 +606,27 @@ class TestQubesFwupdmgr(unittest.TestCase):
             downgrades[0]["Releases"][0]["Checksum"],
             "4ee9dfa38df3b810f739d8a19d13da1b3175fb87"
         )
+
+    def test_parse_dom0_updates_old_agent(self):
+        self.q._parse_dom0_updates_old_agent(GET_DEVICES)
+        self.assertEqual(self.q.dom0_updates_list[0]["Name"], "ColorHug2")
+        self.assertEqual(self.q.dom0_updates_list[0]["Version"], "2.0.6")
+        self.assertListEqual(
+            self.q.dom0_updates_list[0]["Releases"],
+            [
+                {
+                    'Checksum': '490be5c0b13ca4a3f169bf8bc682ba127b8f7b96',
+                    'Description': '<p>This release fixes prevents the firmware returning an '
+                                   'error when the remote SHA1 hash was never sent.</p>',
+                    'Url': 'https://fwupd.org/downloads/0a29848de74d26348bc5a6e24fc9f03778eddf0e-hughski-colorhug2-2.0.7.cab',
+                    'Version': '2.0.7'
+                }
+            ]
+        )
+
+    def test_parse_dom0_updates_old_agent_no_updates_available(self):
+        self.q._parse_dom0_updates_old_agent(GET_DEVICES_NO_UPDATES)
+        self.assertListEqual(self.q.dom0_updates_list, [])
 
     def test_user_input_downgrade_usbvm(self):
         user_input = ['2', '6', 'sth', '2.2.1', '', ' ', '\0', '2']
@@ -661,7 +704,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         if new_version is None:
             self.fail("Test device not found")
         self.assertTrue(
-            ver.LooseVersion(old_version) < ver.LooseVersion(new_version)
+            l_ver(old_version) < l_ver(new_version)
         )
 
     @unittest.skipUnless(device_connected_usbvm(), REQUIRED_DEV)
@@ -697,14 +740,25 @@ class TestQubesFwupdmgr(unittest.TestCase):
         if new_version is None:
             self.fail("Test device not found")
         self.assertTrue(
-            ver.LooseVersion(old_version) < ver.LooseVersion(new_version)
+            l_ver(old_version) < l_ver(new_version)
         )
+
+    def test_update_firmware_old_qubes(self):
+        self.q.fwupdagent_usbvm = None
+        self.q.fwupdagent_dom0 = None
+        return_code = self.q.update_firmware(usbvm=True, whonix=True)
+        self.assertEqual(return_code, 99)
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_get_usbvm_devices(self):
         self.q.check_fwupd_version(usbvm=True)
         self.q._get_usbvm_devices()
         self.assertTrue(os.path.exists(FWUPD_USBVM_LOG))
+
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
+    def test_get_usbvm_devices_old(self):
+        self.q.fwupdagent_usbvm = None
+        self.q._get_usbvm_devices()
 
     def test_parse_usbvm_updates(self):
         self.q._parse_usbvm_updates(GET_DEVICES)
@@ -888,7 +942,9 @@ class TestQubesFwupdmgr(unittest.TestCase):
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_check_fwupd_version_dom0(self):
         self.q.check_fwupd_version()
+        version_check_metadata = 'client version:\t1.4.0'
         version_check = 'client version:\t1.3.8'
+        version_check_old = 'client version:\t1.2.6'
         cmd_version = [
             "fwupdmgr",
             "--version"
@@ -898,18 +954,25 @@ class TestQubesFwupdmgr(unittest.TestCase):
             stdout=subprocess.PIPE
         )
         client_version = p.communicate()[0].decode().split("\n")[0]
-        if ver.LooseVersion(version_check) > ver.LooseVersion(client_version):
+        if l_ver(version_check_old) > l_ver(client_version):
+            self.assertIsNone(self.q.fwupdagent_dom0)
+        elif l_ver(version_check) > l_ver(client_version):
             self.assertEqual(
-                self.q.fwupdagent_usbvm,
+                self.q.fwupdagent_dom0,
                 "/usr/libexec/fwupd/fwupdagent"
             )
+        elif l_ver(version_check_metadata) > l_ver(client_version):
+            self.assertEqual(self.q.fwupdagent_dom0, "/bin/fwupdagent")
         else:
             self.assertEqual(self.q.fwupdagent_dom0, "/bin/fwupdagent")
+            self.assertTrue(self.q.jcat)
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_check_fwupd_version_usbvm(self):
         self.q.check_fwupd_version(usbvm=True)
+        version_check_metadata = 'client version:\t1.4.0'
         version_check = 'client version:\t1.3.8'
+        version_check_old = 'client version:\t1.2.6'
         cmd_version = f'"{FWUPDMGR}" --version'
         cmd_usbvm_version = [
             'qvm-run',
@@ -922,13 +985,18 @@ class TestQubesFwupdmgr(unittest.TestCase):
             stdout=subprocess.PIPE
         )
         client_version = p.communicate()[0].decode().split("\n")[0]
-        if ver.LooseVersion(version_check) > ver.LooseVersion(client_version):
+        if l_ver(version_check_old) > l_ver(client_version):
+            self.assertIsNone(self.q.fwupdagent_usbvm)
+        elif l_ver(version_check) > l_ver(client_version):
             self.assertEqual(
                 self.q.fwupdagent_usbvm,
                 "/usr/libexec/fwupd/fwupdagent"
             )
+        elif l_ver(version_check_metadata) > l_ver(client_version):
+            self.assertEqual(self.q.fwupdagent_usbvm, "/bin/fwupdagent")
         else:
             self.assertEqual(self.q.fwupdagent_usbvm, "/bin/fwupdagent")
+            self.assertTrue(self.q.jcat)
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_bios_refresh_metadata(self):
