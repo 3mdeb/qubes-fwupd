@@ -43,6 +43,7 @@ if [ "$1" = "--help" ]; then
     echo "    --update     inits firmware update files download"
     echo "    --url=       firmware update url"
     echo "    --sha=       firmware update sha1 checksum"
+    echo "    --whonix     download updates via Tor"
     exit
 fi
 
@@ -108,6 +109,29 @@ fi
 if ! xl list $UPDATEVM &>/dev/null ; then
     echo "$UPDATEVM is not running. Exiting..." >&2
     exit 1
+fi
+
+if [[ "$URL" == *"&"* ]]; then
+    echo -e "\033[33mWARNING: Special characters in the update URL\033[0m"
+    URL=${URL//&/--and--}
+    FW_NAME="untrusted.cab"
+fi
+
+if [[ "$URL" == *"%20"* ]]; then
+    echo -e "\033[33mWARNING: Special characters in the update URL\033[0m"
+    FW_NAME="untrusted.cab"
+fi
+
+if [[ "$URL" == *"|"* ]]; then
+    URL=${URL//|/--or--}
+    echo -e "\033[33mWARNING: Special characters in the update URL\033[0m"
+    FW_NAME="untrusted.cab"
+fi
+
+if [[ "$URL" == *"#"* ]]; then
+    URL=${URL//#/--hash--}
+    echo -e "\033[33mWARNING: Special characters in the update URL\033[0m"
+    FW_NAME="untrusted.cab"
 fi
 
 # Set ownership

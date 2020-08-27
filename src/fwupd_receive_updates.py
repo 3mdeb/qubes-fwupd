@@ -62,7 +62,6 @@ FWUPD_UPDATEVM_METADATA_JCAT = path.join(
     "firmware.xml.gz.jcat"
 )
 
-FWUPD_FIRMWARE_FLAG_REGEX = re.compile(r"^updateflag-[A-Za-z0-9]{1,128}\.cab")
 FWUPD_METADATA_FLAG_REGEX = re.compile(r"^metaflag")
 FWUPD_METADATA_FILES_REGEX = re.compile(
     r"^firmware.xml.gz.?[aj]?[sc]?[ca]?t?$"
@@ -237,6 +236,11 @@ class FwupdReceiveUpdates:
         file_path = glob.glob(signature_name)
         self._gpg_verification(file_path[0].replace(".asc", ""))
         os.umask(self.old_umask)
+        if untrusted_dir_name == "untrusted":
+            untrusted_dir_name = "trusted"
+            verified_file = path.join(FWUPD_DOM0_UPDATES_DIR, filename)
+            trusted_file = path.join(FWUPD_DOM0_UPDATES_DIR, "trusted.cab")
+            shutil.move(verified_file, trusted_file)
         dir_name = path.join(FWUPD_DOM0_UPDATES_DIR, untrusted_dir_name)
         shutil.move(output_path, dir_name)
         shutil.rmtree(FWUPD_DOM0_UNTRUSTED_DIR)
