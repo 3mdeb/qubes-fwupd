@@ -23,6 +23,9 @@ fwupd wrapper for Qubes OS
 
 %install
 make install-dom0 DESTDIR=$RPM_BUILD_ROOT
+%if 0%{?fedora} <= 25
+exit 0
+%endif
 
 %post
 ln -s -f %FWUPD_QUBES_DIR/src/qubes_fwupdmgr.py /bin/qubes-fwupdmgr

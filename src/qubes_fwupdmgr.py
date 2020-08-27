@@ -69,6 +69,7 @@ FWUPDMGR = "/bin/fwupdmgr"
 FWUPDAGENT_NEW = "/bin/fwupdagent"
 # version <= 1.3.8
 FWUPDAGENT_OLD = "/usr/libexec/fwupd/fwupdagent"
+FWUPDNEWS = "/usr/share/doc/fwupd/NEWS"
 USBVM_N = "sys-usb"
 BIOS_UPDATE_FLAG = os.path.join(FWUPD_DOM0_DIR, "bios_update")
 
@@ -705,6 +706,13 @@ class QubesFwupdmgr:
             stdout=subprocess.PIPE
         )
         client_version = p.communicate()[0].decode().split("\n")[0]
+        if p.returncode != 0 and not os.path.exists(FWUPDNEWS):
+            raise Exception("Checking version failed")
+        elif p.returncode != 0 and os.path.exists(FWUPDNEWS):
+            with open(FWUPDNEWS, "r") as news:
+                client_version = news.readline()
+                client_version.replace("Version ", "client version:\t")
+
         assert version_regex.match(client_version), (
             'Version command output has changed!!!'
         )
