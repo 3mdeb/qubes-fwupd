@@ -11,6 +11,7 @@ FWUPD_QUBES_DIR := /usr/share/qubes-fwupd
 
 install-dom0:
 	install -m 755 -D src/qubes_fwupdmgr.py $(DESTDIR)$(FWUPD_QUBES_DIR)/src/qubes_fwupdmgr.py
+	install -m 755 -D src/qubes_fwupd_heads.py $(DESTDIR)$(FWUPD_QUBES_DIR)/src/qubes_fwupd_heads.py
 	install -m 755 -D src/fwupd_receive_updates.py $(DESTDIR)$(FWUPD_QUBES_DIR)/src/fwupd_receive_updates.py
 	install -m 755 -D src/fwupd-dom0-update $(DESTDIR)$(FWUPD_QUBES_DIR)/src/fwupd-dom0-update
 	install -m 644 -D src/__init__.py $(DESTDIR)$(FWUPD_QUBES_DIR)/src/__init__.py
