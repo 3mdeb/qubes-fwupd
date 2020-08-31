@@ -635,15 +635,12 @@ class QubesFwupdmgr:
         """Gathers information about devices connected in usbvm."""
         if os.path.exists(FWUPD_USBVM_LOG):
             os.remove(FWUPD_USBVM_LOG)
-        # Different versions of fwupd have different paths of binaries.
-        # In the future the paths will be given dynamically.
         if not self.fwupdagent_usbvm:
             usbvm_cmd = f'"{FWUPDMGR} get-devices"'
             log_file = ''
         else:
             usbvm_cmd = f'"{self.fwupdagent_usbvm} get-devices"'
             log_file = f" > {FWUPD_USBVM_LOG}"
-        usbvm_cmd = f'"{self.fwupdagent_usbvm} get-devices"'
         cmd_get_usbvm_devices = (
             f'qvm-run --nogui --pass-io {USBVM_N} {usbvm_cmd}{log_file}'
         )

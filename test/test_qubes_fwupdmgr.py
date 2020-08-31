@@ -895,6 +895,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_refresh_usbvm_metadata(self):
+        self.q.check_fwupd_version(usbvm=True)
         self.q._download_metadata()
         self.q._validate_usbvm_dirs()
         self.q._copy_usbvm_metadata()
@@ -1031,6 +1032,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_bios_refresh_metadata(self):
+        self.q.check_fwupd_version(usbvm=True)
         Path(BIOS_UPDATE_FLAG).touch(mode=0o644, exist_ok=True)
         self.q.refresh_metadata_after_bios_update(usbvm=True)
         self.assertEqual(
