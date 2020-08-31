@@ -120,6 +120,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_refresh_metadata_dom0(self):
+        self.q.check_fwupd_version()
         self.q.refresh_metadata()
         self.assertEqual(
             self.q.output,
@@ -129,6 +130,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_refresh_metadata_usbvm(self):
+        self.q.check_fwupd_version()
         self.q.refresh_metadata(usbvm=True)
         self.assertEqual(
             self.q.output,
@@ -138,6 +140,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     @unittest.skipUnless(check_whonix_updatevm(), "Requires sys-whonix")
     def test_refresh_metadata_whonix(self):
+        self.q.check_fwupd_version()
         self.q.refresh_metadata(whonix=True)
         self.assertEqual(
             self.q.output,

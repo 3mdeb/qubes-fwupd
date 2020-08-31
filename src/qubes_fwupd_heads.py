@@ -55,4 +55,3 @@ class fwupd_heads(qfwupd.QubesFwupdmgr):
             self.heads_update_url,
             self.heads_update_sha
         )
-

@@ -310,9 +310,9 @@ class QubesFwupdmgr:
             self._validate_usbvm_metadata()
             self._refresh_usbvm_metadata()
         if self.jcat:
-            sig_metadata_file = FWUPD_USBVM_METADATA_JCAT
+            sig_metadata_file = FWUPD_DOM0_METADATA_JCAT
         else:
-            sig_metadata_file = FWUPD_USBVM_METADATA_SIGNATURE
+            sig_metadata_file = FWUPD_DOM0_METADATA_SIGNATURE
         cmd_refresh = [
             FWUPDMGR,
             "refresh",
@@ -328,8 +328,11 @@ class QubesFwupdmgr:
         print(self.output)
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Refresh failed")
-        if not METADATA_REFRESH_REGEX.match(self.output):
-            raise Exception("Metadata signature does not exist")
+        if (
+            not METADATA_REFRESH_REGEX.match(self.output) and
+            self.fwupdagent_dom0 == FWUPDAGENT_NEW
+        ):
+            raise Exception("Manual metadata refresh failed!!!")
 
     def _get_dom0_updates(self):
         """Gathers infromations about available updates."""
@@ -710,9 +713,10 @@ class QubesFwupdmgr:
             raise Exception("Checking version failed")
         elif p.returncode != 0 and os.path.exists(FWUPDNEWS):
             with open(FWUPDNEWS, "r") as news:
-                client_version = news.readline()
-                client_version.replace("Version ", "client version:\t")
-
+                client_version = news.readline().replace(
+                    "Version ",
+                    "client version:\t"
+                )
         assert version_regex.match(client_version), (
             'Version command output has changed!!!'
         )
