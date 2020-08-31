@@ -339,9 +339,9 @@ class QubesFwupdmgr:
         if not self.fwupdagent_dom0:
             cmd_get_dom0_updates = [
                 FWUPDMGR,
-                "get-devices"
+                "get-updates"
             ]
-        if self.fwupdagent_dom0 == FWUPDAGENT_OLD:
+        elif self.fwupdagent_dom0 == FWUPDAGENT_OLD:
             cmd_get_dom0_updates = [
                 self.fwupdagent_dom0,
                 "get-devices"
@@ -356,7 +356,9 @@ class QubesFwupdmgr:
             stdout=subprocess.PIPE
         )
         self.dom0_updates_info = p.communicate()[0].decode()
-        if p.returncode != 0:
+        if not self.fwupdagent_dom0:
+            print(self.dom0_updates_info)
+        if p.returncode != 0 and p.returncode != 2:
             raise Exception("fwudp-qubes: Getting available updates failed")
 
     def _get_usbvm_updates_old(self):
@@ -370,7 +372,7 @@ class QubesFwupdmgr:
             shell=True
         )
         p.wait()
-        if p.returncode != 0:
+        if p.returncode != 0 and p.returncode != 2:
             raise Exception("fwudp-qubes: Getting usbvm updates info failed")
 
     def _parse_dom0_updates_info(self, updates_info):
@@ -624,6 +626,8 @@ class QubesFwupdmgr:
             stdout=subprocess.PIPE
         )
         self.dom0_devices_info = p.communicate()[0].decode()
+        if not self.fwupdagent_dom0:
+            print(self.dom0_devices_info)
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Getting devices info failed")
 

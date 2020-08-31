@@ -122,40 +122,44 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_refresh_metadata_dom0(self):
         self.q.check_fwupd_version()
         self.q.refresh_metadata()
-        self.assertEqual(
-            self.q.output,
-            'Successfully refreshed metadata manually\n',
-            msg="Metadata refresh failed."
-        )
+        if self.q.fwupdagent_dom0 == qfwupd.FWUPDAGENT_NEW:
+            self.assertEqual(
+                self.q.output,
+                'Successfully refreshed metadata manually\n',
+                msg="Metadata refresh failed."
+            )
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_refresh_metadata_usbvm(self):
         self.q.check_fwupd_version()
         self.q.refresh_metadata(usbvm=True)
-        self.assertEqual(
-            self.q.output,
-            'Successfully refreshed metadata manually\n',
-            msg="Metadata refresh failed."
-        )
+        if self.q.fwupdagent_dom0 == qfwupd.FWUPDAGENT_NEW:
+            self.assertEqual(
+                self.q.output,
+                'Successfully refreshed metadata manually\n',
+                msg="Metadata refresh failed."
+            )
 
     @unittest.skipUnless(check_whonix_updatevm(), "Requires sys-whonix")
     def test_refresh_metadata_whonix(self):
         self.q.check_fwupd_version()
         self.q.refresh_metadata(whonix=True)
-        self.assertEqual(
-            self.q.output,
-            'Successfully refreshed metadata manually\n',
-            msg="Metadata refresh failed."
-        )
+        if self.q.fwupdagent_dom0 == qfwupd.FWUPDAGENT_NEW:
+            self.assertEqual(
+                self.q.output,
+                'Successfully refreshed metadata manually\n',
+                msg="Metadata refresh failed."
+            )
 
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_get_dom0_updates(self):
         self.q.check_fwupd_version()
         self.q._get_dom0_updates()
-        self.assertTrue(
-            "Devices" in self.q.dom0_updates_info,
-            msg="Getting available updates failed"
-        )
+        if self.q.fwupdagent_dom0:
+            self.assertTrue(
+                "Devices" in self.q.dom0_updates_info,
+                msg="Getting available updates failed"
+            )
 
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_get_dom0_updates_old(self):
