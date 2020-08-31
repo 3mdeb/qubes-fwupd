@@ -712,23 +712,24 @@ class QubesFwupdmgr:
             cmd_version,
             stdout=subprocess.PIPE
         )
-        client_version = p.communicate()[0].decode().split("\n")[0]
+        self.client_version = p.communicate()[0].decode().split("\n")[0]
         if p.returncode != 0 and not os.path.exists(FWUPDNEWS):
             raise Exception("Checking version failed")
         elif p.returncode != 0 and os.path.exists(FWUPDNEWS):
             with open(FWUPDNEWS, "r") as news:
-                client_version = news.readline().replace(
+                self.client_version = news.readline().replace(
                     "Version ",
                     "client version:\t"
                 )
-        assert version_regex.match(client_version), (
+                self.client_version = self.client_version.replace("\n", "")
+        assert version_regex.match(self.client_version), (
             'Version command output has changed!!!'
         )
-        if l_ver(version_check_old) > l_ver(client_version):
+        if l_ver(version_check_old) > l_ver(self.client_version):
             pass
-        elif l_ver(version_check) > l_ver(client_version):
+        elif l_ver(version_check) > l_ver(self.client_version):
             self.fwupdagent_dom0 = FWUPDAGENT_OLD
-        elif l_ver(version_check_metadata) > l_ver(client_version):
+        elif l_ver(version_check_metadata) > l_ver(self.client_version):
             self.fwupdagent_dom0 = FWUPDAGENT_NEW
         else:
             self.fwupdagent_dom0 = FWUPDAGENT_NEW
@@ -746,15 +747,15 @@ class QubesFwupdmgr:
                 cmd_usbvm_version,
                 stdout=subprocess.PIPE
             )
-            client_version = p.communicate()[0].decode().split("\n")[0]
-            assert version_regex.match(client_version), (
+            client_version_usbvm = p.communicate()[0].decode().split("\n")[0]
+            assert version_regex.match(client_version_usbvm), (
                 'Version command output has changed!!!'
             )
-            if l_ver(version_check_old) > l_ver(client_version):
+            if l_ver(version_check_old) > l_ver(client_version_usbvm):
                 pass
-            elif l_ver(version_check) > l_ver(client_version):
+            elif l_ver(version_check) > l_ver(client_version_usbvm):
                 self.fwupdagent_usbvm = FWUPDAGENT_OLD
-            elif l_ver(version_check_metadata) > l_ver(client_version):
+            elif l_ver(version_check_metadata) > l_ver(client_version_usbvm):
                 self.fwupdagent_usbvm = FWUPDAGENT_NEW
             else:
                 self.fwupdagent_usbvm = FWUPDAGENT_NEW
@@ -768,7 +769,10 @@ class QubesFwupdmgr:
         whonix -- Flag enforces downloading the metadata updates via Tor
         """
         if not self.fwupdagent_dom0 and not self.fwupdagent_usbvm:
-            print("Updates are not supported in fwupd < 1.2.6")
+            print(
+                f"Updates not supported!!\n"
+                f"{self.client_version} < 1.2.6"
+            )
             return EXIT_CODES["NO_UPDATES"]
         if self.fwupdagent_dom0:
             self._get_dom0_updates()
@@ -866,7 +870,10 @@ class QubesFwupdmgr:
         whonix -- Flag enforces downloading the metadata updates via Tor
         """
         if not self.fwupdagent_dom0 and not self.fwupdagent_usbvm:
-            print("dom0 updates are not supported in fwupd < 1.2.6")
+            print(
+                f"Downgrades not supported!!\n"
+                f"{self.client_version} < 1.2.6"
+            )
             return EXIT_CODES["NO_UPDATES"]
         if self.fwupdagent_dom0:
             self._get_dom0_devices()

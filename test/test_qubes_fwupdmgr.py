@@ -450,6 +450,16 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_downgrade_firmware_dom0(self):
         old_version = None
         self.q.check_fwupd_version()
+        if not self.q.fwupdagent_dom0:
+            downgrade_firmware = io.StringIO()
+            sys.stdout = downgrade_firmware
+            self.q.downgrade_firmware()
+            self.assertEqual(
+                # Updates not supported info
+                downgrade_firmware.getvalue().strip().split("\n")[0],
+                "Downgrades not supported!!"
+            )
+            return 0
         self.q._get_dom0_devices()
         downgrades = self.q._parse_downgrades(self.q.dom0_devices_info)
         for number, device in enumerate(downgrades):
@@ -470,7 +480,9 @@ class TestQubesFwupdmgr(unittest.TestCase):
             l_ver(old_version) > l_ver(new_version)
         )
 
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_downgrade_firmware_old_qubes(self):
+        self.q.check_fwupd_version()
         self.q.fwupdagent_usbvm = None
         self.q.fwupdagent_dom0 = None
         return_code = self.q.downgrade_firmware(usbvm=True, whonix=True)
@@ -687,6 +699,16 @@ class TestQubesFwupdmgr(unittest.TestCase):
         old_version = None
         new_version = None
         self.q.check_fwupd_version()
+        if not self.q.fwupdagent_dom0:
+            update_firmware = io.StringIO()
+            sys.stdout = update_firmware
+            self.q.update_firmware()
+            self.assertEqual(
+                # Updates not supported info
+                update_firmware.getvalue().strip().split("\n")[0],
+                "Updates not supported!!"
+            )
+            return 0
         self.q._get_dom0_updates()
         self.q._parse_dom0_updates_info(self.q.dom0_updates_info)
         for number, device in enumerate(self.q.dom0_updates_list):
@@ -750,7 +772,9 @@ class TestQubesFwupdmgr(unittest.TestCase):
             l_ver(old_version) < l_ver(new_version)
         )
 
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_update_firmware_old_qubes(self):
+        self.q.check_fwupd_version()
         self.q.fwupdagent_usbvm = None
         self.q.fwupdagent_dom0 = None
         return_code = self.q.update_firmware(usbvm=True, whonix=True)
