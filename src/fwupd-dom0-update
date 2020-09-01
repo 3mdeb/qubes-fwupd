@@ -41,7 +41,7 @@ if [ "$1" = "--help" ]; then
     echo "    --clean      clean cache before doing anything"
     echo "    --metadata   inits metadata download"
     echo "    --update     inits firmware update files download"
-    echo "    --url=       firmware update url"
+    echo "    --url=       firmware/metadata update url"
     echo "    --sha=       firmware update sha1 checksum"
     echo "    --whonix     download updates via Tor"
     exit
@@ -150,6 +150,10 @@ if [ "$METADATA" == 1 ]; then
     rm -rf $FWUPD_DOM0_DIR/metadata
     FWUPD_UPDATEVM_SCRIPT_ARGS="--metadata"
     FWUPD_DOM0_RECEIVE_ARGS="metadata"
+    if [ -z "$URL" ]; then
+        FWUPD_UPDATEVM_SCRIPT_ARGS="--metadata --url=$URL"
+        FWUPD_DOM0_RECEIVE_ARGS="metadata --url=$URL"
+    fi
 elif [ "$UPDATE" == 1 ]; then
     FW_DIR=$FWUPD_DOM0_DIR/updates/$FW_NAME
     if [ -d "${FW_DIR::-4}" ]; then

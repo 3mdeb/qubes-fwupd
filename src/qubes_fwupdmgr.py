@@ -82,7 +82,9 @@ SPECIAL_CHAR_REGEX = re.compile(r'%20|&|\||#')
 HELP = {
     "Usage": [
         {
-            "qubes-fwupd [OPTION…][FLAG..]": "\n",
+            "qubes-fwupdmgr [OPTION…][FLAG..]": "\n",
+            "Example": "\n",
+            "qubes-fwupdmgr refresh --whonix --url=<url>": "\n",
         }
     ],
     "Options": [
@@ -97,7 +99,8 @@ HELP = {
     ],
     "Flags": [
         {
-            "--whonix": "Downloads firmware updates via Tor"
+            "--whonix": "Downloads firmware updates via Tor",
+            "--url": "Custom metadata url"
         }
     ],
     "Help": [
@@ -115,11 +118,12 @@ EXIT_CODES = {
 
 
 class QubesFwupdmgr:
-    def _download_metadata(self, whonix=False):
+    def _download_metadata(self, whonix=False, metadata_url=None):
         """Initialize downloading metadata files.
 
         Keywords arguments:
         whonix -- Flag enforces downloading the metadata updates via Tor
+        metadata_url -- Use custom metadata from the url
         """
         cmd_metadata = [
             FWUPD_DOM0_UPDATE,
@@ -127,11 +131,13 @@ class QubesFwupdmgr:
         ]
         if whonix:
             cmd_metadata.append("--whonix")
+        if metadata_url:
+            cmd_metadata.append(f"--url={metadata_url}")
         p = subprocess.Popen(cmd_metadata)
         p.wait()
         if p.returncode != 0:
             raise Exception("fwudp-qubes: Metadata update failed")
-        if not os.path.exists(FWUPD_DOM0_METADATA_FILE):
+        if not os.path.exists(self.metadata_file):
             raise Exception("Metadata signature does not exist")
 
     def _validate_usbvm_dirs(self):
@@ -164,19 +170,25 @@ class QubesFwupdmgr:
 
     def _copy_usbvm_metadata(self):
         """Copies metadata files to usbvm."""
-        cat_file = f"cat > {FWUPD_USBVM_METADATA_FILE}"
+        self.metadata_file_usbvm = self.metadata_file.replace(
+            FWUPD_DOM0_METADATA_DIR,
+            FWUPD_USBVM_METADATA_DIR
+        )
+        self.metadata_file_signature_usbvm = self.metadata_file_usbvm + ".asc"
+        self.metadata_file_jcat_usbvm = self.metadata_file_usbvm + ".jcat"
+        cat_file = f"cat > {self.metadata_file_usbvm}"
         cmd_copy_file = (
-            f'cat {FWUPD_DOM0_METADATA_FILE} | '
+            f'cat {self.metadata_file} | '
             f'qvm-run --nogui --pass-io {USBVM_N} "{cat_file}"'
         )
-        cat_sig = f"cat > {FWUPD_USBVM_METADATA_SIGNATURE}"
+        cat_sig = f"cat > {self.metadata_file_signature_usbvm}"
         cmd_copy_sig = (
-            f'cat {FWUPD_DOM0_METADATA_SIGNATURE} | '
+            f'cat {self.metadata_file_signature} | '
             f'qvm-run --nogui --pass-io {USBVM_N} "{cat_sig}"'
         )
-        cat_jcat = f"cat > {FWUPD_USBVM_METADATA_JCAT}"
+        cat_jcat = f"cat > {self.metadata_file_jcat_usbvm}"
         cmd_copy_jcat = (
-            f'cat {FWUPD_DOM0_METADATA_JCAT} | '
+            f'cat {self.metadata_file_jcat} | '
             f'qvm-run --nogui --pass-io {USBVM_N} "{cat_jcat}"'
         )
         p = subprocess.Popen(cmd_copy_file, shell=True)
@@ -192,14 +204,17 @@ class QubesFwupdmgr:
         if p.returncode != 0:
             raise Exception("Copying metadata jcat failed.")
 
-    def _validate_usbvm_metadata(self):
+    def _validate_usbvm_metadata(self, metadata_url=None):
         """Checks GPG signature of metadata files in usbvm."""
+        usbvm_cmd = f'"{FWUPD_USBVM_VALIDATE} metadata"'
+        if metadata_url:
+            usbvm_cmd = f'"{FWUPD_USBVM_VALIDATE} metadata {metadata_url}"'
         cmd_validate_metadata = [
             "qvm-run",
             "--pass-io",
             USBVM_N,
             'script --quiet --return --command'
-            f' "{FWUPD_USBVM_VALIDATE} metadata"'
+            f' {usbvm_cmd}'
         ]
         p = subprocess.Popen(cmd_validate_metadata)
         p.wait()
@@ -209,16 +224,16 @@ class QubesFwupdmgr:
     def _refresh_usbvm_metadata(self):
         """Refreshes metadata in usbvm."""
         if self.jcat:
-            sig_metadata_file = FWUPD_USBVM_METADATA_JCAT
+            sig_metadata_file = self.metadata_file_jcat_usbvm
         else:
-            sig_metadata_file = FWUPD_USBVM_METADATA_SIGNATURE
+            sig_metadata_file = self.metadata_file_signature_usbvm
         cmd_refresh_metadata = [
             "qvm-run",
             "--pass-io",
             USBVM_N,
             (
                 'script --quiet --return --command '
-                f'"{FWUPDMGR} refresh {FWUPD_USBVM_METADATA_FILE} '
+                f'"{FWUPDMGR} refresh {self.metadata_file_usbvm} '
                 f'{sig_metadata_file} lvfs"'
             )
         ]
@@ -296,27 +311,40 @@ class QubesFwupdmgr:
         if p.returncode != 0:
             raise Exception("Cleaning usbvm directories failed")
 
-    def refresh_metadata(self, usbvm=False, whonix=False):
+    def refresh_metadata(self, usbvm=False, whonix=False, metadata_url=None):
         """Updates metadata with downloaded files.
 
         Keyword arguments:
         usbvm -- usbvm support flag
         whonix -- Flag enforces downloading the metadata updates via Tor
+        metadata_url -- Use custom metadata from the url
         """
-        self._download_metadata(whonix=whonix)
+        if metadata_url:
+            metadata_name = metadata_url.replace(FWUPD_DOWNLOAD_PREFIX, "")
+            self.metadata_file = os.path.join(
+                FWUPD_USBVM_METADATA_DIR,
+                metadata_name
+            )
+            self.metadata_file_signature = self.metadata_file + '.asc'
+            self.metadata_file_jcat = self.metadata_file + '.jcat'
+        else:
+            self.metadata_file = FWUPD_DOM0_METADATA_FILE
+            self.metadata_file_signature = FWUPD_DOM0_METADATA_SIGNATURE
+            self.metadata_file_jcat = FWUPD_DOM0_METADATA_JCAT
+        self._download_metadata(whonix=whonix, metadata_url=metadata_url)
         if usbvm:
             self._validate_usbvm_dirs()
             self._copy_usbvm_metadata()
-            self._validate_usbvm_metadata()
+            self._validate_usbvm_metadata(metadata_url=metadata_url)
             self._refresh_usbvm_metadata()
         if self.jcat:
-            sig_metadata_file = FWUPD_DOM0_METADATA_JCAT
+            sig_metadata_file = self.metadata_file_jcat
         else:
-            sig_metadata_file = FWUPD_DOM0_METADATA_SIGNATURE
+            sig_metadata_file = self.metadata_file_signature
         cmd_refresh = [
             FWUPDMGR,
             "refresh",
-            FWUPD_DOM0_METADATA_FILE,
+            self.metadata_file,
             sig_metadata_file,
             "lvfs"
         ]
@@ -1133,6 +1161,7 @@ def main():
         exit(EXIT_CODES["ERROR"])
     q = QubesFwupdmgr()
     sys_usb = q.check_usbvm()
+    metadata_url = None
     q.check_fwupd_version(usbvm=sys_usb)
     q.trusted_cleanup(usbvm=sys_usb)
     q.refresh_metadata_after_bios_update(usbvm=sys_usb)
@@ -1140,14 +1169,21 @@ def main():
         q.refresh_metadata(usbvm=sys_usb)
     if len(sys.argv) < 2:
         q.help()
-    elif sys.argv[1] == "get-updates":
+        exit(1)
+    for arg in sys.argv:
+        if "--url=" in arg:
+            metadata_url = arg.replace("--url=", "")
+            if FWUPD_DOWNLOAD_PREFIX not in metadata_url:
+                print(
+                    "Metadata must be stored in the Linux"
+                    " Vendor Firmware Service (https://fwupd.org/)"
+                )
+                print("Exiting...")
+                exit(1)
+    if sys.argv[1] == "get-updates":
         q.get_updates_qubes(usbvm=sys_usb)
     elif sys.argv[1] == "get-devices":
         q.get_devices_qubes(usbvm=sys_usb)
-    elif sys.argv[1] == "refresh" and "--whonix" in sys.argv:
-        q.refresh_metadata(usbvm=sys_usb, whonix=True)
-    elif sys.argv[1] == "refresh" and "--whonix" not in sys.argv:
-        q.refresh_metadata(usbvm=sys_usb)
     elif sys.argv[1] == "update" and "--whonix" in sys.argv:
         q.update_firmware(usbvm=sys_usb, whonix=True)
     elif sys.argv[1] == "update" and "--whonix" not in sys.argv:
@@ -1158,8 +1194,17 @@ def main():
         q.downgrade_firmware(usbvm=sys_usb)
     elif sys.argv[1] == "clean":
         q.clean_cache(usbvm=sys_usb)
+    elif sys.argv[1] == "refresh" and "--whonix" not in sys.argv:
+        q.refresh_metadata(usbvm=sys_usb, metadata_url=metadata_url)
+    elif sys.argv[1] == "refresh" and "--whonix" in sys.argv:
+        q.refresh_metadata(
+            usbvm=sys_usb,
+            whonix=True,
+            metadata_url=metadata_url
+        )
     else:
         q.help()
+        exit(1)
 
 
 if __name__ == '__main__':

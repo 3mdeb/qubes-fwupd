@@ -43,6 +43,7 @@ XL_LIST_LOG = "Name                                        ID   Mem VCPUs	State	
 USBVM_N = "sys-usb"
 FWUPDMGR = "/bin/fwupdmgr"
 BIOS_UPDATE_FLAG = os.path.join(FWUPD_DOM0_DIR, "bios_update")
+CUSTOM_METADATA = "https://fwupd.org/downloads/firmware-3c81bfdc9db5c8a42c09d38091944bc1a05b27b0.xml.gz"
 
 
 def check_usbvm():
@@ -119,9 +120,36 @@ class TestQubesFwupdmgr(unittest.TestCase):
         )
 
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
+    def test_download_metadata_custom_metadata(self):
+        self.q._download_metadata(metadata_url=CUSTOM_METADATA)
+        self.assertTrue(
+            os.path.exists(self.q.metadata_file),
+            msg="Metadata update file does not exist",
+        )
+        self.assertTrue(
+            os.path.exists(self.q.metadata_file_jcat),
+            msg="Metadata signature does not exist",
+        )
+        self.assertTrue(
+            os.path.exists(self.q.metadata_file_signature),
+            msg="Metadata signature does not exist",
+        )
+
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_refresh_metadata_dom0(self):
         self.q.check_fwupd_version()
         self.q.refresh_metadata()
+        if self.q.fwupdagent_dom0 == qfwupd.FWUPDAGENT_NEW:
+            self.assertEqual(
+                self.q.output,
+                'Successfully refreshed metadata manually\n',
+                msg="Metadata refresh failed."
+            )
+
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
+    def test_refresh_metadata_dom0_custom(self):
+        self.q.check_fwupd_version()
+        self.q.refresh_metadata(metadata_url=CUSTOM_METADATA)
         if self.q.fwupdagent_dom0 == qfwupd.FWUPDAGENT_NEW:
             self.assertEqual(
                 self.q.output,
@@ -133,6 +161,17 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_refresh_metadata_usbvm(self):
         self.q.check_fwupd_version()
         self.q.refresh_metadata(usbvm=True)
+        if self.q.fwupdagent_dom0 == qfwupd.FWUPDAGENT_NEW:
+            self.assertEqual(
+                self.q.output,
+                'Successfully refreshed metadata manually\n',
+                msg="Metadata refresh failed."
+            )
+
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
+    def test_refresh_metadata_usbvm_custom(self):
+        self.q.check_fwupd_version()
+        self.q.refresh_metadata(usbvm=True, metadata_url=CUSTOM_METADATA)
         if self.q.fwupdagent_dom0 == qfwupd.FWUPDAGENT_NEW:
             self.assertEqual(
                 self.q.output,
