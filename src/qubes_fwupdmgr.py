@@ -322,7 +322,7 @@ class QubesFwupdmgr:
         if metadata_url:
             metadata_name = metadata_url.replace(FWUPD_DOWNLOAD_PREFIX, "")
             self.metadata_file = os.path.join(
-                FWUPD_USBVM_METADATA_DIR,
+                FWUPD_DOM0_METADATA_DIR,
                 metadata_name
             )
             self.metadata_file_signature = self.metadata_file + '.asc'

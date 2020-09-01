@@ -150,7 +150,7 @@ if [ "$METADATA" == 1 ]; then
     rm -rf $FWUPD_DOM0_DIR/metadata
     FWUPD_UPDATEVM_SCRIPT_ARGS="--metadata"
     FWUPD_DOM0_RECEIVE_ARGS="metadata"
-    if [ -z "$URL" ]; then
+    if [ -n "$URL" ]; then
         FWUPD_UPDATEVM_SCRIPT_ARGS="--metadata --url=$URL"
         FWUPD_DOM0_RECEIVE_ARGS="metadata --url=$URL"
     fi

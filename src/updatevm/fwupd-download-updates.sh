@@ -81,11 +81,11 @@ if [ "$METADATA" == "1" ] && [ -z "$URL" ]; then
     echo "Downloading metadata."
     rm -rf $FWUPD_UPDATEVM_DIR/metadata/*
     wget -P $FWUPD_UPDATEVM_DIR/metadata \
-        https://cdn.fwupd.org/downloads/firmware.xml.gz
+        https://fwupd.org/downloads/firmware.xml.gz
     wget -P $FWUPD_UPDATEVM_DIR/metadata \
-        https://cdn.fwupd.org/downloads/firmware.xml.gz.jcat
+        https://fwupd.org/downloads/firmware.xml.gz.jcat
     wget -P $FWUPD_UPDATEVM_DIR/metadata \
-        https://cdn.fwupd.org/downloads/firmware.xml.gz.asc
+        https://fwupd.org/downloads/firmware.xml.gz.asc
     gpg --verify $FWUPD_UPDATEVM_DIR/metadata/firmware.xml.gz.asc \
         $FWUPD_UPDATEVM_DIR/metadata/firmware.xml.gz
     if [ ! $? -eq 0 ]; then

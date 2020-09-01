@@ -97,6 +97,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_download_metadata(self):
+        self.q.metadata_file = FWUPD_DOM0_METADATA_FILE
         self.q._download_metadata()
         self.assertTrue(
             os.path.exists(FWUPD_DOM0_METADATA_FILE),
@@ -109,6 +110,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     @unittest.skipUnless(check_whonix_updatevm(), "Requires sys-whonix")
     def test_download_metadata_whonix(self):
+        self.q.metadata_file = FWUPD_DOM0_METADATA_FILE
         self.q._download_metadata(whonix=True)
         self.assertTrue(
             os.path.exists(FWUPD_DOM0_METADATA_FILE),
@@ -120,7 +122,10 @@ class TestQubesFwupdmgr(unittest.TestCase):
         )
 
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
-    def test_download_metadata_custom_metadata(self):
+    def test_download_custom_metadata(self):
+        self.q.metadata_file = FWUPD_DOM0_METADATA_FILE
+        self.q.metadata_file_signature = self.q.metadata_file + '.asc'
+        self.q.metadata_file_jcat = self.q.metadata_file + '.jcat'
         self.q._download_metadata(metadata_url=CUSTOM_METADATA)
         self.assertTrue(
             os.path.exists(self.q.metadata_file),
@@ -895,6 +900,9 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_copy_usbvm_metadata(self):
+        self.q.metadata_file = FWUPD_DOM0_METADATA_FILE
+        self.q.metadata_file_signature = self.q.metadata_file + '.asc'
+        self.q.metadata_file_jcat = self.q.metadata_file + '.jcat'
         self.q._download_metadata()
         self.q._validate_usbvm_dirs()
         self.q._copy_usbvm_metadata()
@@ -927,6 +935,9 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_validate_usbvm_metadata(self):
+        self.q.metadata_file = FWUPD_DOM0_METADATA_FILE
+        self.q.metadata_file_signature = self.q.metadata_file + '.asc'
+        self.q.metadata_file_jcat = self.q.metadata_file + '.jcat'
         self.q._download_metadata()
         self.q._validate_usbvm_dirs()
         self.q._copy_usbvm_metadata()
@@ -934,6 +945,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_refresh_usbvm_metadata(self):
+        self.q.metadata_file = FWUPD_DOM0_METADATA_FILE
         self.q.check_fwupd_version(usbvm=True)
         self.q._download_metadata()
         self.q._validate_usbvm_dirs()

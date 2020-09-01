@@ -64,7 +64,7 @@ FWUPD_UPDATEVM_METADATA_JCAT = path.join(
 FWUPD_DOWNLOAD_PREFIX = "https://fwupd.org/downloads/"
 FWUPD_METADATA_FLAG_REGEX = re.compile(r"^metaflag")
 FWUPD_METADATA_FILES_REGEX = re.compile(
-    r"^firmware[a-z0-9\[\]\@\<\>\.\"\"\-]{1,128}.xml.gz.?[aj]?[sc]?[ca]?t?$"
+    r"^firmware[a-z0-9\[\]\@\<\>\.\"\"\-]{0,128}.xml.gz.?[aj]?[sc]?[ca]?t?$"
 )
 GPG_LVFS_REGEX = re.compile(
     r"gpg: Good signature from [a-z0-9\[\]\@\<\>\.\"\"]{1,128}"
@@ -253,9 +253,13 @@ class FwupdReceiveUpdates:
         updatevm -- update VM name
         """
         if metadata_url:
-            self.metadata_file = metadata_url.replace(
+            metadata_name = metadata_url.replace(
                 FWUPD_DOWNLOAD_PREFIX,
-                FWUPD_DOM0_METADATA_DIR
+                ""
+            )
+            self.metadata_file = os.path.join(
+                FWUPD_DOM0_METADATA_DIR,
+                metadata_name
             )
             self.metadata_file_signature = self.metadata_file + '.asc'
             self.metadata_file_jcat = self.metadata_file + '.jcat'
@@ -263,11 +267,25 @@ class FwupdReceiveUpdates:
             self.metadata_file = FWUPD_DOM0_METADATA_FILE
             self.metadata_file_signature = FWUPD_DOM0_METADATA_SIGNATURE
             self.metadata_file_jcat = FWUPD_DOM0_METADATA_JCAT
+        self.metadata_file_updatevm = self.metadata_file.replace(
+            FWUPD_DOM0_METADATA_DIR,
+            FWUPD_UPDATEVM_METADATA_DIR
+        )
+        self.metadata_file_signature_updatevm = (
+            self.metadata_file_signature.replace(
+                FWUPD_DOM0_METADATA_DIR,
+                FWUPD_UPDATEVM_METADATA_DIR
+            )
+        )
+        self.metadata_file_jcat_updatevm = self.metadata_file_jcat.replace(
+            FWUPD_DOM0_METADATA_DIR,
+            FWUPD_UPDATEVM_METADATA_DIR
+        )
         self._check_domain(updatevm)
         self._create_dirs(FWUPD_DOM0_METADATA_DIR)
-        cmd_file = "'cat %s'" % FWUPD_UPDATEVM_METADATA_FILE
-        cmd_signature = "'cat %s'" % FWUPD_UPDATEVM_METADATA_SIGNATURE
-        cmd_jcat = "'cat %s'" % FWUPD_UPDATEVM_METADATA_JCAT
+        cmd_file = "'cat %s'" % self.metadata_file_updatevm
+        cmd_signature = "'cat %s'" % self.metadata_file_signature_updatevm
+        cmd_jcat = "'cat %s'" % self.metadata_file_jcat_updatevm
         cmd_copy_metadata_file = 'qvm-run --pass-io %s %s > %s' % (
             updatevm,
             cmd_file,
@@ -310,6 +328,7 @@ class FwupdReceiveUpdates:
 def main():
     if len(sys.argv) < 3:
         raise Exception("Invalid number of arguments.")
+    metadata_url = None
     updatevm = sys.argv[1]
     fwupd = FwupdReceiveUpdates()
     for arg in sys.argv:
