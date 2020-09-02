@@ -26,6 +26,7 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
+from src.qubes_fwupd_heads import FwupdHeads
 from pathlib import Path
 from distutils.version import LooseVersion as l_ver
 
@@ -84,7 +85,7 @@ HELP = {
     "Usage": [
         {
             "Command": "qubes-fwupdmgr [OPTION…][FLAG..]",
-            "Example": "qubes-fwupdmgr refresh --whonix --url=<url>\n",
+            "Examples": "qubes-fwupdmgr refresh --whonix --url=<url>\n",
         }
     ],
     "Options": [
@@ -93,6 +94,7 @@ HELP = {
             "get-updates": "Get the list of updates for connected hardware",
             "refresh": "Refresh metadata from remote server",
             "update": "Update chosen device to latest firmware version",
+            "update-heads": "Updates heads firmware to the lastest version",
             "downgrade": "Downgrade chosen device to chosen firmware version",
             "clean": "Delete all cached update files\n"
         }
@@ -100,6 +102,7 @@ HELP = {
     "Flags": [
         {
             "--whonix": "Download firmware updates via Tor",
+            "--device": "Specify device for heads update (default - x230)",
             "--url": "Adress of the custom metadata remote server\n"
         }
     ],
@@ -1229,14 +1232,19 @@ def main():
     if os.geteuid() != 0:
         print("You need to have root privileges to run this script.\n")
         exit(EXIT_CODES["ERROR"])
+
     q = QubesFwupdmgr()
     sys_usb = q.check_usbvm()
-    metadata_url = None
     q.check_fwupd_version(usbvm=sys_usb)
     q.trusted_cleanup(usbvm=sys_usb)
     q.refresh_metadata_after_bios_update(usbvm=sys_usb)
+
+    metadata_url = None
+    device = "x230"
+
     if not os.path.exists(FWUPD_DOM0_DIR):
         q.refresh_metadata(usbvm=sys_usb)
+
     if len(sys.argv) < 2:
         q.help()
         exit(1)
@@ -1250,7 +1258,9 @@ def main():
                 )
                 print("Exiting...")
                 exit(1)
-        break
+        if "--device=" in arg:
+            device = arg.replace("--board=", "")
+
     if sys.argv[1] == "get-updates":
         q.get_updates_qubes(usbvm=sys_usb)
     elif sys.argv[1] == "get-devices":
@@ -1273,6 +1283,12 @@ def main():
             whonix=True,
             metadata_url=metadata_url
         )
+    elif sys.argv[1] == "update-heads" and "--whonix" not in sys.argv:
+        hd = FwupdHeads()
+        hd.heads_update(device=device, metadata_url=metadata_url)
+    elif sys.argv[1] == "update-heads" and "--whonix" in sys.argv:
+        hd = FwupdHeads()
+        hd.heads_update(device=device, metadata_url=metadata_url, whonix=True)
     else:
         q.help()
         exit(1)

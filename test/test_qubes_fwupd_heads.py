@@ -1,9 +1,16 @@
 #!/usr/bin/python3
 import io
+import os
 import platform
+import shutil
+import src.qubes_fwupd_heads as qf_heads
+import src.qubes_fwupdmgr as qfwupd
 import sys
 import unittest
-import src.qubes_fwupd_heads as qf_heads
+
+from test.fwupd_logs import HEADS_XML
+
+CUSTOM_METADATA = "https://fwupd.org/downloads/firmware-3c81bfdc9db5c8a42c09d38091944bc1a05b27b0.xml.gz"
 
 
 class TestQubesFwupdHeads(unittest.TestCase):
@@ -24,9 +31,80 @@ class TestQubesFwupdHeads(unittest.TestCase):
         self.assertEqual(return_code, 99)
 
     def test_gather_firmware_version(self):
-        self.q.dom0_hwids_info = "BiosVersion: CBET4.13 heads"
+        self.q.dom0_hwids_info = "BiosVersion: CBET4000 4.13 heads"
         self.q._gather_firmware_version()
         self.assertEqual(self.q.heads_version, "4.13 heads")
+
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
+    def test_parse_metadata(self):
+        self.q._download_metadata(metadata_url=CUSTOM_METADATA)
+        self.q.metadata_file = CUSTOM_METADATA.replace(
+            "https://fwupd.org/downloads",
+            qfwupd.FWUPD_DOM0_DIR
+        )
+        self.q._parse_metadata()
+        self.assertTrue(self.q.metadata_info)
+
+    def test_check_heads_updates_default_heads(self):
+        self.q.metadata_info = HEADS_XML
+        self.q.heads_version = "heads"
+        return_code = self.q._parse_heads_updates(board="x230")
+        self.assertEqual(return_code, 0)
+        self.assertEqual(
+            self.q.heads_update_url,
+            "https://fwupd.org/downloads/10176eb94fa364e5a3ce1085d8076f38a5cdc92865a98f8bd2cf711e5c645072-heads_coreboot_x230-v4_19_0.cab"
+        )
+        self.assertEqual(
+            self.q.heads_update_sha,
+            "cf3af2382cbd3c438281d33daef63b69af7854cd"
+        )
+        self.assertEqual(
+            self.q.heads_update_version,
+            "4.19.0"
+        )
+
+    def test_check_heads_updates_no_updates(self):
+        self.q.metadata_info = HEADS_XML
+        self.q.heads_version = "4.19.0 heads"
+        return_code = self.q._parse_heads_updates(board="x230")
+        self.assertEqual(return_code, 99)
+
+    def test_check_heads_updates_lower_version(self):
+        self.q.metadata_info = HEADS_XML
+        self.q.heads_version = "4.17.0 heads"
+        return_code = self.q._parse_heads_updates(board="x230")
+        self.assertEqual(return_code, 0)
+        self.assertEqual(
+            self.q.heads_update_url,
+            "https://fwupd.org/downloads/10176eb94fa364e5a3ce1085d8076f38a5cdc92865a98f8bd2cf711e5c645072-heads_coreboot_x230-v4_19_0.cab"
+        )
+        self.assertEqual(
+            self.q.heads_update_sha,
+            "cf3af2382cbd3c438281d33daef63b69af7854cd"
+        )
+        self.assertEqual(
+            self.q.heads_update_version,
+            "4.19.0"
+        )
+
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
+    def test_copy_heads_firmware(self):
+        self.q.heads_update_url = "https://fwupd.org/downloads/10176eb94fa364e5a3ce1085d8076f38a5cdc92865a98f8bd2cf711e5c645072-heads_coreboot_x230-v4_19_0.cab"
+        self.q.heads_update_sha = "cf3af2382cbd3c438281d33daef63b69af7854cd"
+        self.q.heads_update_version = "4.19.0"
+        self.q._download_firmware_updates(
+            self.q.heads_update_url,
+            self.q.heads_update_sha
+        )
+        heads_boot_path = os.path.join(
+            qf_heads.HEADS_UPDATES_DIR,
+            self.q.heads_update_version
+        )
+        if os.path.exists(heads_boot_path):
+            shutil.rmtree(heads_boot_path)
+        self.q._copy_usbvm_metadata()
+        firmware_path = os.path.join(heads_boot_path, "firmware.rom")
+        self.assertTrue(os.path.exists(firmware_path))
 
 
 if __name__ == '__main__':

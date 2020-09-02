@@ -17,6 +17,7 @@ install-dom0:
 	install -m 644 -D src/__init__.py $(DESTDIR)$(FWUPD_QUBES_DIR)/src/__init__.py
 	install -m 755 -D test/fwupd_logs.py $(DESTDIR)$(FWUPD_QUBES_DIR)/test/fwupd_logs.py
 	install -m 755 -D test/test_qubes_fwupdmgr.py $(DESTDIR)$(FWUPD_QUBES_DIR)/test/test_qubes_fwupdmgr.py
+	install -m 755 -D test/test_qubes_fwupd_heads.py $(DESTDIR)$(FWUPD_QUBES_DIR)/test/test_qubes_fwupd_heads.py
 	install -m 644 -D test/__init__.py $(DESTDIR)$(FWUPD_QUBES_DIR)/test/__init__.py
 	install -m 644 -D test/logs/get_devices.log $(DESTDIR)$(FWUPD_QUBES_DIR)/test/logs/get_devices.log
 	install -m 644 -D test/logs/get_updates.log $(DESTDIR)$(FWUPD_QUBES_DIR)/test/logs/get_updates.log

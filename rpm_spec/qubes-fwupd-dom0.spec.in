@@ -60,6 +60,7 @@ fi
 %FWUPD_QUBES_DIR/src/__init__.py
 %FWUPD_QUBES_DIR/test/fwupd_logs.py
 %FWUPD_QUBES_DIR/test/test_qubes_fwupdmgr.py
+%FWUPD_QUBES_DIR/test/test_qubes_fwupd_heads.py
 %FWUPD_QUBES_DIR/test/__init__.py
 %FWUPD_QUBES_DIR/test/logs/get_devices.log
 %FWUPD_QUBES_DIR/test/logs/get_updates.log
