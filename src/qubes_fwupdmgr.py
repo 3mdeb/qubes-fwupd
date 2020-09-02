@@ -83,30 +83,29 @@ SPECIAL_CHAR_REGEX = re.compile(r'%20|&|\||#')
 HELP = {
     "Usage": [
         {
-            "qubes-fwupdmgr [OPTION…][FLAG..]": "\n",
-            "Example": "\n",
-            "qubes-fwupdmgr refresh --whonix --url=<url>": "\n",
+            "Command": "qubes-fwupdmgr [OPTION…][FLAG..]",
+            "Example": "qubes-fwupdmgr refresh --whonix --url=<url>\n",
         }
     ],
     "Options": [
         {
             "get-devices": "Get all devices that support firmware updates",
-            "get-updates": "Gets the list of updates for connected hardware",
+            "get-updates": "Get the list of updates for connected hardware",
             "refresh": "Refresh metadata from remote server",
-            "update": "Updates chosen device to latest firmware version",
+            "update": "Update chosen device to latest firmware version",
             "downgrade": "Downgrade chosen device to chosen firmware version",
-            "clean": "Deletes all cached update files"
+            "clean": "Delete all cached update files\n"
         }
     ],
     "Flags": [
         {
-            "--whonix": "Downloads firmware updates via Tor",
-            "--url": "Custom metadata url"
+            "--whonix": "Download firmware updates via Tor",
+            "--url": "Adress of the custom metadata remote server\n"
         }
     ],
     "Help": [
         {
-            "-h --help": "Show help options"
+            "-h --help": "Show help options\n"
         }
     ],
 }
@@ -1074,7 +1073,7 @@ class QubesFwupdmgr:
                     if level == 0 and dom0 is True:
                         print(f"Dom0 {output}")
                     elif level == 0 and dom0 is False:
-                        print(f"{USBVM_N}{output}")
+                        print(f"{USBVM_N} {output}")
 
                 for nested_dict in updev_dict[updev_key]:
                     self._output_crawler(nested_dict, level+1)

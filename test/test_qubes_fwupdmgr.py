@@ -159,13 +159,14 @@ class TestQubesFwupdmgr(unittest.TestCase):
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_refresh_metadata_dom0_custom(self):
         self.q.check_fwupd_version()
-        self.q.refresh_metadata(metadata_url=CUSTOM_METADATA)
-        if self.q.fwupdagent_dom0 == qfwupd.FWUPDAGENT_NEW:
-            self.assertEqual(
-                self.q.output,
-                'Successfully refreshed metadata manually\n',
-                msg="Metadata refresh failed."
-            )
+        if self.q.fwupdagent_dom0:
+            self.q.refresh_metadata(metadata_url=CUSTOM_METADATA)
+            if self.q.fwupdagent_dom0 == qfwupd.FWUPDAGENT_NEW:
+                self.assertEqual(
+                    self.q.output,
+                    'Successfully refreshed metadata manually\n',
+                    msg="Metadata refresh failed."
+                )
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_refresh_metadata_usbvm(self):
@@ -181,13 +182,14 @@ class TestQubesFwupdmgr(unittest.TestCase):
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_refresh_metadata_usbvm_custom(self):
         self.q.check_fwupd_version()
-        self.q.refresh_metadata(usbvm=True, metadata_url=CUSTOM_METADATA)
-        if self.q.fwupdagent_dom0 == qfwupd.FWUPDAGENT_NEW:
-            self.assertEqual(
-                self.q.output,
-                'Successfully refreshed metadata manually\n',
-                msg="Metadata refresh failed."
-            )
+        if self.q.fwupdagent_usbvm:
+            self.q.refresh_metadata(usbvm=True, metadata_url=CUSTOM_METADATA)
+            if self.q.fwupdagent_dom0 == qfwupd.FWUPDAGENT_NEW:
+                self.assertEqual(
+                    self.q.output,
+                    'Successfully refreshed metadata manually\n',
+                    msg="Metadata refresh failed."
+                )
 
     @unittest.skipUnless(check_whonix_updatevm(), "Requires sys-whonix")
     def test_refresh_metadata_whonix(self):
