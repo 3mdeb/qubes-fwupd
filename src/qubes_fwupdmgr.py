@@ -208,7 +208,9 @@ class QubesFwupdmgr:
         """Checks GPG signature of metadata files in usbvm."""
         usbvm_cmd = f'"{FWUPD_USBVM_VALIDATE} metadata"'
         if metadata_url:
-            usbvm_cmd = f'"{FWUPD_USBVM_VALIDATE} metadata {metadata_url}"'
+            usbvm_cmd = (
+                f'"{FWUPD_USBVM_VALIDATE} metadata --url={metadata_url}"'
+            )
         cmd_validate_metadata = [
             "qvm-run",
             "--pass-io",
