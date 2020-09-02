@@ -23,10 +23,10 @@ import os
 import re
 import shutil
 import subprocess
+import src.qubes_fwupd_heads as qf_heads
 import sys
 import xml.etree.ElementTree as ET
 
-from src.qubes_fwupd_heads import FwupdHeads
 from pathlib import Path
 from distutils.version import LooseVersion as l_ver
 
@@ -120,7 +120,7 @@ EXIT_CODES = {
 }
 
 
-class QubesFwupdmgr:
+class QubesFwupdmgr(qf_heads.FwupdHeads):
     def _download_metadata(self, whonix=False, metadata_url=None):
         """Initialize downloading metadata files.
 
@@ -1227,6 +1227,58 @@ class QubesFwupdmgr:
                 self.refresh_metadata(usbvm=usbvm)
             os.remove(BIOS_UPDATE_FLAG)
 
+    def heads_update(self, device="x230", whonix=False, metadata_url=None):
+        """
+        Updates heads firmware
+
+        Keyword arguments:
+        device -- Model of the updated device
+        whonix -- Flag enforces downloading the metadata updates via Tor
+        metadata_url -- Use custom metadata from the url
+        """
+        if metadata_url:
+            custom_metadata_name = metadata_url.replace(
+                FWUPD_DOWNLOAD_PREFIX,
+                ""
+            )
+            self.metadata_file = os.path.join(
+                FWUPD_DOM0_METADATA_DIR,
+                custom_metadata_name
+            )
+        else:
+            self.metadata_file = FWUPD_DOM0_METADATA_FILE
+        self._get_hwids()
+        if not os.path.isfile(self.metadata_file):
+            self._download_metadata(whonix=whonix, metadata_url=metadata_url)
+        self._parse_metadata(self.metadata_file)
+        if self._gather_firmware_version() == EXIT_CODES["NO_UPDATES"]:
+            return EXIT_CODES["NO_UPDATES"]
+        self._parse_heads_updates(device)
+        self._download_firmware_updates(
+            self.heads_update_url,
+            self.heads_update_sha
+        )
+        return_code = self._copy_heads_firmware(self.arch_path)
+        if return_code == EXIT_CODES["NO_UPDATES"]:
+            exit(EXIT_CODES["NO_UPDATES"])
+        elif return_code == EXIT_CODES["SUCCESS"]:
+            print()
+            while True:
+                try:
+                    print("An update requires a reboot to complete.")
+                    choice = input("Do you want to restart now? (Y|N)")
+                    if choice == 'N' or choice == 'n':
+                        return EXIT_CODES["SUCCESS"]
+                    elif choice == 'Y' or choice == 'y':
+                        print("Rebooting...")
+                        os.system("reboot")
+                    else:
+                        raise ValueError()
+                except ValueError:
+                    print("Invalid choice.")
+        else:
+            raise Exception("Copying heads update failed!!")
+
 
 def main():
     if os.geteuid() != 0:
@@ -1284,11 +1336,9 @@ def main():
             metadata_url=metadata_url
         )
     elif sys.argv[1] == "update-heads" and "--whonix" not in sys.argv:
-        hd = FwupdHeads()
-        hd.heads_update(device=device, metadata_url=metadata_url)
+        q.heads_update(device=device, metadata_url=metadata_url)
     elif sys.argv[1] == "update-heads" and "--whonix" in sys.argv:
-        hd = FwupdHeads()
-        hd.heads_update(device=device, metadata_url=metadata_url, whonix=True)
+        q.heads_update(device=device, metadata_url=metadata_url, whonix=True)
     else:
         q.help()
         exit(1)

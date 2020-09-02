@@ -1,19 +1,26 @@
 #!/usr/bin/python3
-import src.qubes_fwupdmgr as qfwupd
 import subprocess
 import os
 import shutil
 import xml.etree.ElementTree as ET
 from distutils.version import LooseVersion as l_ver
 
+FWUPDMGR = "/bin/fwupdmgr"
+
 BOOT = "/boot"
 HEADS_UPDATES_DIR = os.path.join(BOOT, "update")
 HEADS_COREBOOT = os.path.join(HEADS_UPDATES_DIR, "coreboot.rom")
 
+EXIT_CODES = {
+    "ERROR": 1,
+    "SUCCESS": 0,
+    "NO_UPDATES": 99,
+}
 
-class FwupdHeads(qfwupd.QubesFwupdmgr):
+
+class FwupdHeads:
     def _get_hwids(self):
-        cmd_hwids = [qfwupd.FWUPDMGR, "hwids"]
+        cmd_hwids = [FWUPDMGR, "hwids"]
         p = subprocess.Popen(
             cmd_hwids,
             stdout=subprocess.PIPE
@@ -38,13 +45,13 @@ class FwupdHeads(qfwupd.QubesFwupdmgr):
         else:
             print("Device is not running under the heads firmware!!")
             print("Exiting...")
-            return qfwupd.EXIT_CODES["NO_UPDATES"]
+            return EXIT_CODES["NO_UPDATES"]
 
-    def _parse_metadata(self):
+    def _parse_metadata(self, metadata_file):
         """
         Parse metadata info.
         """
-        cmd_metadata = ["zcat", self.metadata_file]
+        cmd_metadata = ["zcat", metadata_file]
         p = subprocess.Popen(
             cmd_metadata,
             stdout=subprocess.PIPE
@@ -70,7 +77,7 @@ class FwupdHeads(qfwupd.QubesFwupdmgr):
                 heads_metadata_info = component
         if not heads_metadata_info:
             print("No metadata info for chosen board")
-            return qfwupd.EXIT_CODES["NO_UPDATES"]
+            return EXIT_CODES["NO_UPDATES"]
         for release in heads_metadata_info.find("releases").findall("release"):
             release_ver = release.get("version")
             if (self.heads_version == "heads" or
@@ -84,11 +91,11 @@ class FwupdHeads(qfwupd.QubesFwupdmgr):
                             self.heads_update_sha = sha.text
                     self.heads_update_version = release_ver
         if self.heads_update_url:
-            return qfwupd.EXIT_CODES["SUCCESS"]
+            return EXIT_CODES["SUCCESS"]
         else:
-            return qfwupd.EXIT_CODES["NO_UPDATES"]
+            return EXIT_CODES["NO_UPDATES"]
 
-    def _copy_heads_firmware(self):
+    def _copy_heads_firmware(self, arch_path):
         """
         Copies heads update to the boot path
         """
@@ -96,7 +103,7 @@ class FwupdHeads(qfwupd.QubesFwupdmgr):
             HEADS_UPDATES_DIR,
             self.heads_update_version
         )
-        update_path = self.arch_path.replace(".cab", "/firmware.rom")
+        update_path = arch_path.replace(".cab", "/firmware.rom")
         if not os.path.exists(HEADS_UPDATES_DIR):
             os.mkdir(HEADS_UPDATES_DIR)
         if os.path.exists(heads_boot_path):
@@ -104,64 +111,11 @@ class FwupdHeads(qfwupd.QubesFwupdmgr):
                 f"Heads Update == {self.heads_update_version} "
                 "already exists"
             )
-            return qfwupd.EXIT_CODES["NO_UPDATES"]
+            return EXIT_CODES["NO_UPDATES"]
         else:
             shutil.copyfile(update_path, heads_boot_path)
             print(
                 f"Heads Update == {self.heads_update_version} "
                 f"available at {heads_boot_path}"
             )
-            return qfwupd.EXIT_CODES["SUCCESS"]
-
-    def heads_update(self, device="x230", whonix=False, metadata_url=None):
-        """
-        Updates heads firmware
-
-        Keyword arguments:
-        device -- Model of the updated device
-        whonix -- Flag enforces downloading the metadata updates via Tor
-        metadata_url -- Use custom metadata from the url
-        """
-        if metadata_url:
-            custom_metadata_name = metadata_url.replace(
-                qfwupd.FWUPD_DOWNLOAD_PREFIX,
-                ""
-            )
-            self.metadata_file = os.path.join(
-                qfwupd.FWUPD_DOM0_METADATA_DIR,
-                custom_metadata_name
-            )
-        else:
-            self.metadata_file = qfwupd.FWUPD_DOM0_METADATA_FILE
-        self._get_hwids()
-        if not os.path.isfile(self.metadata_file):
-            self._download_metadata(whonix=whonix, metadata_url=metadata_url)
-        self._parse_metadata()
-        if self._gather_firmware_version() == qfwupd.EXIT_CODES["NO_UPDATES"]:
-            return qfwupd.EXIT_CODES["NO_UPDATES"]
-        self._parse_heads_updates(device)
-        self._download_firmware_updates(
-            self.heads_update_url,
-            self.heads_update_sha
-        )
-        return_code = self._copy_heads_firmware()
-        if return_code == qfwupd.EXIT_CODES["NO_UPDATES"]:
-            exit(qfwupd.EXIT_CODES["NO_UPDATES"])
-        elif return_code == qfwupd.EXIT_CODES["SUCCESS"]:
-            print()
-            while True:
-                try:
-                    print("An update requires a reboot to complete.")
-                    choice = input("Do you want to restart now? (Y|N)")
-                    if choice == 'N' or choice == 'n':
-                        return qfwupd.EXIT_CODES["SUCCESS"]
-                    elif choice == 'Y' or choice == 'y':
-                        print("Rebooting...")
-                        os.system("reboot")
-                    else:
-                        raise ValueError()
-                except ValueError:
-                    print("Invalid choice.")
-
-        else:
-            raise Exception("Copying heads update failed!!")
+            return EXIT_CODES["SUCCESS"]

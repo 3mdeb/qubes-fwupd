@@ -36,6 +36,7 @@ sed -i 's/python3/python36/g' %FWUPD_QUBES_DIR/src/qubes_fwupdmgr.py
 sed -i 's/python3/python36/g' %FWUPD_QUBES_DIR/src/fwupd_receive_updates.py
 sed -i 's/python3/python36/g' %FWUPD_QUBES_DIR/src/qubes_fwupd_heads.py
 sed -i 's/python3/python36/g' %FWUPD_QUBES_DIR/test/test_qubes_fwupdmgr.py
+sed -i 's/python3/python36/g' %FWUPD_QUBES_DIR/test/test_qubes_fwupd_heads.py
 sed -i 's/python3/python36/g' %FWUPD_QUBES_DIR/test/fwupd_logs.py
 %endif
 ln -s -f %FWUPD_QUBES_DIR/src/qubes_fwupdmgr.py /bin/qubes-fwupdmgr

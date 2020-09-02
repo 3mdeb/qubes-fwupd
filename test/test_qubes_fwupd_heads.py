@@ -37,18 +37,19 @@ class TestQubesFwupdHeads(unittest.TestCase):
 
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_parse_metadata(self):
-        self.q._download_metadata(metadata_url=CUSTOM_METADATA)
+        qmgr = qfwupd.QubesFwupdmgr()
+        qmgr._download_metadata(metadata_url=CUSTOM_METADATA)
         self.q.metadata_file = CUSTOM_METADATA.replace(
             "https://fwupd.org/downloads",
             qfwupd.FWUPD_DOM0_DIR
         )
-        self.q._parse_metadata()
+        self.q._parse_metadata(self.q.metadata_file)
         self.assertTrue(self.q.metadata_info)
 
     def test_check_heads_updates_default_heads(self):
         self.q.metadata_info = HEADS_XML
         self.q.heads_version = "heads"
-        return_code = self.q._parse_heads_updates(board="x230")
+        return_code = self.q._parse_heads_updates("x230")
         self.assertEqual(return_code, 0)
         self.assertEqual(
             self.q.heads_update_url,
@@ -66,13 +67,13 @@ class TestQubesFwupdHeads(unittest.TestCase):
     def test_check_heads_updates_no_updates(self):
         self.q.metadata_info = HEADS_XML
         self.q.heads_version = "4.19.0 heads"
-        return_code = self.q._parse_heads_updates(board="x230")
+        return_code = self.q._parse_heads_updates("x230")
         self.assertEqual(return_code, 99)
 
     def test_check_heads_updates_lower_version(self):
         self.q.metadata_info = HEADS_XML
         self.q.heads_version = "4.17.0 heads"
-        return_code = self.q._parse_heads_updates(board="x230")
+        return_code = self.q._parse_heads_updates("x230")
         self.assertEqual(return_code, 0)
         self.assertEqual(
             self.q.heads_update_url,
@@ -89,10 +90,11 @@ class TestQubesFwupdHeads(unittest.TestCase):
 
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_copy_heads_firmware(self):
+        qmgr = qfwupd.QubesFwupdmgr()
         self.q.heads_update_url = "https://fwupd.org/downloads/10176eb94fa364e5a3ce1085d8076f38a5cdc92865a98f8bd2cf711e5c645072-heads_coreboot_x230-v4_19_0.cab"
         self.q.heads_update_sha = "cf3af2382cbd3c438281d33daef63b69af7854cd"
         self.q.heads_update_version = "4.19.0"
-        self.q._download_firmware_updates(
+        qmgr._download_firmware_updates(
             self.q.heads_update_url,
             self.q.heads_update_sha
         )
@@ -102,7 +104,7 @@ class TestQubesFwupdHeads(unittest.TestCase):
         )
         if os.path.exists(heads_boot_path):
             shutil.rmtree(heads_boot_path)
-        self.q._copy_usbvm_metadata()
+        self.q._copy_heads_firmware(qmgr.arch_path)
         firmware_path = os.path.join(heads_boot_path, "firmware.rom")
         self.assertTrue(os.path.exists(firmware_path))
 
