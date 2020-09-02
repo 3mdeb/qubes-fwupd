@@ -234,7 +234,7 @@ class QubesFwupdmgr:
             (
                 'script --quiet --return --command '
                 f'"{FWUPDMGR} refresh {self.metadata_file_usbvm} '
-                f'{sig_metadata_file} lvfs"'
+                f'{sig_metadata_file} {self.lvfs}"'
             )
         ]
         p = subprocess.Popen(cmd_refresh_metadata)
@@ -327,10 +327,12 @@ class QubesFwupdmgr:
             )
             self.metadata_file_signature = self.metadata_file + '.asc'
             self.metadata_file_jcat = self.metadata_file + '.jcat'
+            self.lvfs = "lvfs-testing"
         else:
             self.metadata_file = FWUPD_DOM0_METADATA_FILE
             self.metadata_file_signature = FWUPD_DOM0_METADATA_SIGNATURE
             self.metadata_file_jcat = FWUPD_DOM0_METADATA_JCAT
+            self.lvfs = "lvfs"
         self._download_metadata(whonix=whonix, metadata_url=metadata_url)
         if usbvm:
             self._validate_usbvm_dirs()
@@ -346,7 +348,7 @@ class QubesFwupdmgr:
             "refresh",
             self.metadata_file,
             sig_metadata_file,
-            "lvfs"
+            self.lvfs
         ]
         p = subprocess.Popen(
             cmd_refresh,
@@ -1180,6 +1182,7 @@ def main():
                 )
                 print("Exiting...")
                 exit(1)
+        break
     if sys.argv[1] == "get-updates":
         q.get_updates_qubes(usbvm=sys_usb)
     elif sys.argv[1] == "get-devices":
