@@ -72,7 +72,8 @@ FWUPDAGENT_OLD = "/usr/libexec/fwupd/fwupdagent"
 FWUPDNEWS = "/usr/share/doc/fwupd/NEWS"
 USBVM_N = "sys-usb"
 BIOS_UPDATE_FLAG = os.path.join(FWUPD_DOM0_DIR, "bios_update")
-
+LVFS_TESTING_DOM0_FLAG = os.path.join(FWUPD_DOM0_DIR, "lvfs_testing")
+LVFS_TESTING_USBVM_FLAG = os.path.join(FWUPD_USBVM_DIR, "lvfs_testing")
 METADATA_REFRESH_REGEX = re.compile(
     r"^Successfully refreshed metadata manually$"
 )
@@ -313,6 +314,64 @@ class QubesFwupdmgr:
         if p.returncode != 0:
             raise Exception("Cleaning usbvm directories failed")
 
+    def _enable_lvfs_testing_dom0(self):
+        """Checks and enable lvfs-testing for custom metadata in dom0"""
+        cmd_lvfs_testing = [
+            FWUPDMGR,
+            "enable-remote",
+            "-y",
+            "lvfs-testing"
+        ]
+        if not os.path.exists(LVFS_TESTING_DOM0_FLAG):
+            p = subprocess.Popen(cmd_lvfs_testing)
+            p.wait()
+            if p.returncode != 0:
+                raise Exception("Enabling dom0 lvfs-testing failed!!")
+            Path(LVFS_TESTING_DOM0_FLAG).touch(mode=0o644, exist_ok=False)
+
+    def _enable_lvfs_testing_usbvm(self, usbvm=False):
+        """Checks and enable lvfs-testing for custom metadata in usbvm"""
+        if not usbvm:
+            return 0
+        cmd_refresh_metadata = [
+            "qvm-run",
+            "--pass-io",
+            USBVM_N,
+            (
+                'script --quiet --return --command '
+                f'"{FWUPDMGR} enable-remote -y lvfs-testing"'
+            )
+        ]
+        cmd_validate_flag = [
+            "qvm-run",
+            "--pass-io",
+            USBVM_N,
+            (
+                'script --quiet --return --command '
+                f'"ls {LVFS_TESTING_USBVM_FLAG} &>/dev/null"'
+            )
+        ]
+        cmd_touch_flag = [
+            "qvm-run",
+            "--pass-io",
+            USBVM_N,
+            (
+                'script --quiet --return --command '
+                f'"touch {LVFS_TESTING_USBVM_FLAG}"'
+            )
+        ]
+        flag = subprocess.Popen(cmd_validate_flag)
+        flag.wait()
+        if flag.returncode != 0:
+            p = subprocess.Popen(cmd_refresh_metadata)
+            p.wait()
+            if p.returncode != 0:
+                raise Exception("Enabling usbvm lvfs-testing failed!!")
+            p = subprocess.Popen(cmd_touch_flag)
+            p.wait()
+            if p.returncode != 0:
+                raise Exception("Creating flag failed!!")
+
     def refresh_metadata(self, usbvm=False, whonix=False, metadata_url=None):
         """Updates metadata with downloaded files.
 
@@ -321,7 +380,7 @@ class QubesFwupdmgr:
         whonix -- Flag enforces downloading the metadata updates via Tor
         metadata_url -- Use custom metadata from the url
         """
-        if metadata_url:
+        if metadata_url and self.fwupdagent_dom0:
             metadata_name = metadata_url.replace(FWUPD_DOWNLOAD_PREFIX, "")
             self.metadata_file = os.path.join(
                 FWUPD_DOM0_METADATA_DIR,
@@ -330,6 +389,14 @@ class QubesFwupdmgr:
             self.metadata_file_signature = self.metadata_file + '.asc'
             self.metadata_file_jcat = self.metadata_file + '.jcat'
             self.lvfs = "lvfs-testing"
+            self._enable_lvfs_testing_dom0()
+            self._enable_lvfs_testing_usbvm(usbvm=usbvm)
+        elif metadata_url and self.fwupdagent_dom0:
+            print(
+                f"Custom refresh not supported!!\n"
+                f"{self.client_version} < 1.2.6"
+            )
+            return EXIT_CODES["NO_UPDATES"]
         else:
             self.metadata_file = FWUPD_DOM0_METADATA_FILE
             self.metadata_file_signature = FWUPD_DOM0_METADATA_SIGNATURE

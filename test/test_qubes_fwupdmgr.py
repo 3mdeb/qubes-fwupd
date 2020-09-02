@@ -43,6 +43,8 @@ XL_LIST_LOG = "Name                                        ID   Mem VCPUs	State	
 USBVM_N = "sys-usb"
 FWUPDMGR = "/bin/fwupdmgr"
 BIOS_UPDATE_FLAG = os.path.join(FWUPD_DOM0_DIR, "bios_update")
+LVFS_TESTING_DOM0_FLAG = os.path.join(FWUPD_DOM0_DIR, "lvfs_testing")
+LVFS_TESTING_USBVM_FLAG = os.path.join(FWUPD_USBVM_DIR, "lvfs_testing")
 CUSTOM_METADATA = "https://fwupd.org/downloads/firmware-3c81bfdc9db5c8a42c09d38091944bc1a05b27b0.xml.gz"
 
 
@@ -936,6 +938,49 @@ class TestQubesFwupdmgr(unittest.TestCase):
             msg="Metadata signature does not exist"
         )
 
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
+    def test_enable_lvfs_testing_dom0(self):
+        self.q.check_fwupd_version()
+        if self.q.fwupdagent_dom0:
+            if os.path.exists(LVFS_TESTING_DOM0_FLAG):
+                os.remove(LVFS_TESTING_DOM0_FLAG)
+            self.q._enable_lvfs_testing_dom0()
+            self.assertTrue(os.path.exists(LVFS_TESTING_DOM0_FLAG))
+
+    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
+    def test_enable_lvfs_testing_usbvm(self):
+        self.q.check_fwupd_version()
+        if self.q.fwupdagent_usbvm:
+            cmd_validate_flag = [
+                "qvm-run",
+                "--pass-io",
+                USBVM_N,
+                (
+                    'script --quiet --return --command '
+                    f'"ls {LVFS_TESTING_USBVM_FLAG} &>/dev/null"'
+                )
+            ]
+            cmd_rm_flag = [
+                "qvm-run",
+                "--pass-io",
+                USBVM_N,
+                (
+                    'script --quiet --return --command '
+                    f'"rm {LVFS_TESTING_USBVM_FLAG}"'
+                )
+            ]
+            flag = subprocess.Popen(cmd_validate_flag)
+            flag.wait()
+            if flag.returncode == 0:
+                rm_flag = subprocess.Popen(cmd_rm_flag)
+                rm_flag.wait()
+                if rm_flag.returncode != 0:
+                    raise Exception("Removing lvfs-testing flag failed!!")
+            self.q._enable_lvfs_testing_usbvm(usbvm=True)
+            flag = subprocess.Popen(cmd_validate_flag)
+            flag.wait()
+            self.assertTrue(flag.returncode == 0)
+
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_validate_usbvm_metadata(self):
         self.q.metadata_file = FWUPD_DOM0_METADATA_FILE
@@ -951,6 +996,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.q.metadata_file = FWUPD_DOM0_METADATA_FILE
         self.q.metadata_file_signature = self.q.metadata_file + '.asc'
         self.q.metadata_file_jcat = self.q.metadata_file + '.jcat'
+        self.q.lvfs = "lvfs"
         self.q.check_fwupd_version(usbvm=True)
         self.q._download_metadata()
         self.q._validate_usbvm_dirs()
