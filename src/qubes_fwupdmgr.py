@@ -1260,8 +1260,7 @@ class QubesFwupdmgr(FwupdHeads):
         else:
             self.metadata_file = FWUPD_DOM0_METADATA_FILE
         self._get_hwids()
-        if not os.path.isfile(self.metadata_file):
-            self._download_metadata(whonix=whonix, metadata_url=metadata_url)
+        self._download_metadata(whonix=whonix, metadata_url=metadata_url)
         self._parse_metadata(self.metadata_file)
         if self._gather_firmware_version() == EXIT_CODES["NO_UPDATES"]:
             return EXIT_CODES["NO_UPDATES"]

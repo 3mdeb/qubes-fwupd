@@ -48,6 +48,9 @@ class FwupdHeads:
                     self.heads_version = line.replace(
                         "BiosVersion: CBET4000 ",
                         ""
+                    ).replace(
+                        " heads",
+                        ""
                     )
         else:
             print("Device is not running under the heads firmware!!")
@@ -100,6 +103,7 @@ class FwupdHeads:
         if self.heads_update_url:
             return EXIT_CODES["SUCCESS"]
         else:
+            print("Heads firmware is up to date.")
             return EXIT_CODES["NO_UPDATES"]
 
     def _copy_heads_firmware(self, arch_path):
