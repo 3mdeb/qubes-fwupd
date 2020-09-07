@@ -1236,6 +1236,7 @@ class QubesFwupdmgr(qf_heads.FwupdHeads):
         whonix -- Flag enforces downloading the metadata updates via Tor
         metadata_url -- Use custom metadata from the url
         """
+        self._check_fwupdtool_version()
         if metadata_url:
             custom_metadata_name = metadata_url.replace(
                 FWUPD_DOWNLOAD_PREFIX,

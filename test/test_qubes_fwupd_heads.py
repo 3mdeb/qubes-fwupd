@@ -22,6 +22,7 @@ class TestQubesFwupdHeads(unittest.TestCase):
 
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_get_hwids(self):
+        self.q._check_fwupdtool_version()
         self.q._get_hwids()
         self.assertNotEqual(self.q.dom0_hwids_info, "")
 
@@ -39,11 +40,11 @@ class TestQubesFwupdHeads(unittest.TestCase):
     def test_parse_metadata(self):
         qmgr = qfwupd.QubesFwupdmgr()
         qmgr._download_metadata(metadata_url=CUSTOM_METADATA)
-        self.q.metadata_file = CUSTOM_METADATA.replace(
+        qmgr.metadata_file = CUSTOM_METADATA.replace(
             "https://fwupd.org/downloads",
-            qfwupd.FWUPD_DOM0_DIR
+            qfwupd.FWUPD_DOM0_METADATA_DIR
         )
-        self.q._parse_metadata(self.q.metadata_file)
+        self.q._parse_metadata(qmgr.metadata_file)
         self.assertTrue(self.q.metadata_info)
 
     def test_check_heads_updates_default_heads(self):

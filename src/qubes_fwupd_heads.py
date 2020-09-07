@@ -1,15 +1,22 @@
 #!/usr/bin/python3
 import subprocess
 import os
+import re
 import shutil
 import xml.etree.ElementTree as ET
 from distutils.version import LooseVersion as l_ver
 
 FWUPDMGR = "/bin/fwupdmgr"
+FWUPDTOOL = "/bin/fwupdtool"
+FWUPDTOOL_OLD = "/usr/libexec/fwupd/fwupdtool"
+FWUPDNEWS = "/usr/share/doc/fwupd/NEWS"
+
+USBVM_N = "sys-usb"
 
 BOOT = "/boot"
 HEADS_UPDATES_DIR = os.path.join(BOOT, "update")
 HEADS_COREBOOT = os.path.join(HEADS_UPDATES_DIR, "coreboot.rom")
+FWUPD_DOM0_UPDATES_DIR = "/root/.cache/fwupd/updates"
 
 EXIT_CODES = {
     "ERROR": 1,
@@ -20,7 +27,7 @@ EXIT_CODES = {
 
 class FwupdHeads:
     def _get_hwids(self):
-        cmd_hwids = [FWUPDMGR, "hwids"]
+        cmd_hwids = [self.fwupd_hwids, "hwids"]
         p = subprocess.Popen(
             cmd_hwids,
             stdout=subprocess.PIPE
@@ -104,18 +111,59 @@ class FwupdHeads:
             self.heads_update_version
         )
         update_path = arch_path.replace(".cab", "/firmware.rom")
+        heads_update_path = update_path.replace(
+            FWUPD_DOM0_UPDATES_DIR,
+            heads_boot_path
+        )
         if not os.path.exists(HEADS_UPDATES_DIR):
             os.mkdir(HEADS_UPDATES_DIR)
-        if os.path.exists(heads_boot_path):
+        if os.path.exists(update_path):
             print(
                 f"Heads Update == {self.heads_update_version} "
                 "already exists"
             )
             return EXIT_CODES["NO_UPDATES"]
         else:
-            shutil.copyfile(update_path, heads_boot_path)
+            os.mkdir(heads_boot_path)
+            shutil.copyfile(update_path, heads_update_path)
             print(
                 f"Heads Update == {self.heads_update_version} "
                 f"available at {heads_boot_path}"
             )
             return EXIT_CODES["SUCCESS"]
+
+    def _check_fwupdtool_version(self):
+        """Checks the fwupd client version and sets fwupdtool path dynamically
+        """
+        version_check = 'client version:\t1.3.6'
+        version_check_old = 'client version:\t1.1.2'
+        version_regex = re.compile(
+            r'client version:\t[0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2}$'
+        )
+        cmd_version = [
+            FWUPDMGR,
+            "--version"
+        ]
+        p = subprocess.Popen(
+            cmd_version,
+            stdout=subprocess.PIPE
+        )
+        self.client_version = p.communicate()[0].decode().split("\n")[0]
+        if p.returncode != 0 and not os.path.exists(FWUPDNEWS):
+            raise Exception("Checking version failed")
+        elif p.returncode != 0 and os.path.exists(FWUPDNEWS):
+            with open(FWUPDNEWS, "r") as news:
+                self.client_version = news.readline().replace(
+                    "Version ",
+                    "client version:\t"
+                )
+                self.client_version = self.client_version.replace("\n", "")
+        assert version_regex.match(self.client_version), (
+            'Version command output has changed!!!'
+        )
+        if l_ver(version_check_old) > l_ver(self.client_version):
+            self.fwupd_hwids = FWUPDMGR
+        elif l_ver(version_check) > l_ver(self.client_version):
+            self.fwupd_hwids = FWUPDTOOL_OLD
+        else:
+            self.fwupd_hwids = FWUPDTOOL
