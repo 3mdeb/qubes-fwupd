@@ -14,7 +14,7 @@ FWUPDNEWS = "/usr/share/doc/fwupd/NEWS"
 USBVM_N = "sys-usb"
 
 BOOT = "/boot"
-HEADS_UPDATES_DIR = os.path.join(BOOT, "update")
+HEADS_UPDATES_DIR = os.path.join(BOOT, "updates")
 HEADS_COREBOOT = os.path.join(HEADS_UPDATES_DIR, "coreboot.rom")
 FWUPD_DOM0_UPDATES_DIR = "/root/.cache/fwupd/updates"
 
@@ -121,7 +121,7 @@ class FwupdHeads:
         if os.path.exists(heads_update_path):
             print(
                 f"Heads Update == {self.heads_update_version} "
-                "already exists"
+                "already downloaded."
             )
             return EXIT_CODES["NO_UPDATES"]
         else:

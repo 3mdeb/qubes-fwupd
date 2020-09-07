@@ -68,14 +68,18 @@ FWUPD_USBVM_METADATA_JCAT = os.path.join(
     FWUPD_USBVM_METADATA_DIR,
     "firmware.xml.gz.jcat"
 )
+HEADS_UPDATES_DIR = "/boot/updates"
 FWUPD_DOWNLOAD_PREFIX = "https://fwupd.org/downloads/"
+
 FWUPDMGR = "/bin/fwupdmgr"
 # version > 1.3.8
 FWUPDAGENT_NEW = "/bin/fwupdagent"
 # version <= 1.3.8
 FWUPDAGENT_OLD = "/usr/libexec/fwupd/fwupdagent"
 FWUPDNEWS = "/usr/share/doc/fwupd/NEWS"
+
 USBVM_N = "sys-usb"
+
 BIOS_UPDATE_FLAG = os.path.join(FWUPD_DOM0_DIR, "bios_update")
 LVFS_TESTING_DOM0_FLAG = os.path.join(FWUPD_DOM0_DIR, "lvfs_testing")
 LVFS_TESTING_USBVM_FLAG = os.path.join(FWUPD_USBVM_DIR, "lvfs_testing")
@@ -84,6 +88,7 @@ METADATA_REFRESH_REGEX = re.compile(
 )
 
 SPECIAL_CHAR_REGEX = re.compile(r'%20|&|\||#')
+
 
 HELP = {
     "Usage": [
@@ -1181,6 +1186,8 @@ class QubesFwupdmgr(FwupdHeads):
             shutil.rmtree(FWUPD_DOM0_METADATA_DIR)
         if os.path.exists(FWUPD_DOM0_UPDATES_DIR):
             shutil.rmtree(FWUPD_DOM0_UPDATES_DIR)
+        if os.path.exists(HEADS_UPDATES_DIR):
+            shutil.rmtree(HEADS_UPDATES_DIR)
         if usbvm:
             print("Cleaning usbvm cache directories")
             self._clean_usbvm()
@@ -1272,7 +1279,7 @@ class QubesFwupdmgr(FwupdHeads):
             while True:
                 try:
                     print("An update requires a reboot to complete.")
-                    choice = input("Do you want to restart now? (Y|N)")
+                    choice = input("Do you want to restart now? (Y|N)\n")
                     if choice == 'N' or choice == 'n':
                         return EXIT_CODES["SUCCESS"]
                     elif choice == 'Y' or choice == 'y':
@@ -1352,4 +1359,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
