@@ -23,12 +23,16 @@ import os
 import re
 import shutil
 import subprocess
-import src.qubes_fwupd_heads as qf_heads
 import sys
 import xml.etree.ElementTree as ET
 
 from pathlib import Path
 from distutils.version import LooseVersion as l_ver
+
+if __name__ == "__main__":
+    from qubes_fwupd_heads import FwupdHeads
+else:
+    from src.qubes_fwupd_heads import FwupdHeads
 
 FWUPD_QUBES_DIR = "/usr/share/qubes-fwupd"
 FWUPD_DOM0_UPDATE = os.path.join(FWUPD_QUBES_DIR, "src/fwupd-dom0-update")
@@ -120,7 +124,7 @@ EXIT_CODES = {
 }
 
 
-class QubesFwupdmgr(qf_heads.FwupdHeads):
+class QubesFwupdmgr(FwupdHeads):
     def _download_metadata(self, whonix=False, metadata_url=None):
         """Initialize downloading metadata files.
 
@@ -1347,3 +1351,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
