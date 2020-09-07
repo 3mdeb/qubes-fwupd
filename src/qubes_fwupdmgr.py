@@ -1258,7 +1258,8 @@ class QubesFwupdmgr(FwupdHeads):
         self._parse_metadata(self.metadata_file)
         if self._gather_firmware_version() == EXIT_CODES["NO_UPDATES"]:
             return EXIT_CODES["NO_UPDATES"]
-        self._parse_heads_updates(device)
+        if self._parse_heads_updates(device) == EXIT_CODES["NO_UPDATES"]:
+            return EXIT_CODES["NO_UPDATES"]
         self._download_firmware_updates(
             self.heads_update_url,
             self.heads_update_sha
