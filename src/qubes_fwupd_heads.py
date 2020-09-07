@@ -111,13 +111,14 @@ class FwupdHeads:
             self.heads_update_version
         )
         update_path = arch_path.replace(".cab", "/firmware.rom")
-        heads_update_path = update_path.replace(
-            FWUPD_DOM0_UPDATES_DIR,
-            heads_boot_path
+
+        heads_update_path = os.path.join(
+            heads_boot_path,
+            "firmware.rom"
         )
         if not os.path.exists(HEADS_UPDATES_DIR):
             os.mkdir(HEADS_UPDATES_DIR)
-        if os.path.exists(update_path):
+        if os.path.exists(heads_update_path):
             print(
                 f"Heads Update == {self.heads_update_version} "
                 "already exists"
