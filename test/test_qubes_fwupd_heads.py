@@ -32,9 +32,9 @@ class TestQubesFwupdHeads(unittest.TestCase):
         self.assertEqual(return_code, 99)
 
     def test_gather_firmware_version(self):
-        self.q.dom0_hwids_info = "BiosVersion: CBET4000 4.13 heads"
+        self.q.dom0_hwids_info = "BiosVersion: CBET4000 0.2.2 heads"
         self.q._gather_firmware_version()
-        self.assertEqual(self.q.heads_version, "4.13 heads")
+        self.assertEqual(self.q.heads_version, "0.2.2")
 
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_parse_metadata(self):
@@ -54,47 +54,47 @@ class TestQubesFwupdHeads(unittest.TestCase):
         self.assertEqual(return_code, 0)
         self.assertEqual(
             self.q.heads_update_url,
-            "https://fwupd.org/downloads/10176eb94fa364e5a3ce1085d8076f38a5cdc92865a98f8bd2cf711e5c645072-heads_coreboot_x230-v4_19_0.cab"
+            "https://fwupd.org/downloads/e747a435bf24fd6081b77b6704b39cec5fa2dcf62e0ca6b86d8a6460121a1d07-heads_coreboot_x230-v0_2_3.cab"
         )
         self.assertEqual(
             self.q.heads_update_sha,
-            "cf3af2382cbd3c438281d33daef63b69af7854cd"
+            "1a54e69ca2b58d1218035115d481480eaf4c66e4"
         )
         self.assertEqual(
             self.q.heads_update_version,
-            "4.19.0"
+            "0.2.3"
         )
 
     def test_check_heads_updates_no_updates(self):
         self.q.metadata_info = HEADS_XML
-        self.q.heads_version = "4.19.0 heads"
+        self.q.heads_version = "0.2.3"
         return_code = self.q._parse_heads_updates("x230")
         self.assertEqual(return_code, 99)
 
     def test_check_heads_updates_lower_version(self):
         self.q.metadata_info = HEADS_XML
-        self.q.heads_version = "4.17.0 heads"
+        self.q.heads_version = "0.2.2"
         return_code = self.q._parse_heads_updates("x230")
         self.assertEqual(return_code, 0)
         self.assertEqual(
             self.q.heads_update_url,
-            "https://fwupd.org/downloads/10176eb94fa364e5a3ce1085d8076f38a5cdc92865a98f8bd2cf711e5c645072-heads_coreboot_x230-v4_19_0.cab"
+            "https://fwupd.org/downloads/e747a435bf24fd6081b77b6704b39cec5fa2dcf62e0ca6b86d8a6460121a1d07-heads_coreboot_x230-v0_2_3.cab"
         )
         self.assertEqual(
             self.q.heads_update_sha,
-            "cf3af2382cbd3c438281d33daef63b69af7854cd"
+            "1a54e69ca2b58d1218035115d481480eaf4c66e4"
         )
         self.assertEqual(
             self.q.heads_update_version,
-            "4.19.0"
+            "0.2.3"
         )
 
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_copy_heads_firmware(self):
         qmgr = qfwupd.QubesFwupdmgr()
-        self.q.heads_update_url = "https://fwupd.org/downloads/10176eb94fa364e5a3ce1085d8076f38a5cdc92865a98f8bd2cf711e5c645072-heads_coreboot_x230-v4_19_0.cab"
-        self.q.heads_update_sha = "cf3af2382cbd3c438281d33daef63b69af7854cd"
-        self.q.heads_update_version = "4.19.0"
+        self.q.heads_update_url = "https://fwupd.org/downloads/e747a435bf24fd6081b77b6704b39cec5fa2dcf62e0ca6b86d8a6460121a1d07-heads_coreboot_x230-v0_2_3.cab"
+        self.q.heads_update_sha = "1a54e69ca2b58d1218035115d481480eaf4c66e4"
+        self.q.heads_update_version = "0.2.3"
         qmgr._download_firmware_updates(
             self.q.heads_update_url,
             self.q.heads_update_sha

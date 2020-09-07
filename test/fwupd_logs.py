@@ -802,10 +802,10 @@ HEADS_XML = """<?xml version='1.0' encoding='utf-8'?>
 <components origin="lvfs" version="0.9">
   <component type="firmware">
     <id>com.3mdeb.heads.x230.firmware</id>
-    <name>Heads Lenovo x230 System Update</name>
-    <summary>Lenovo x230 heads system firmware</summary>
+    <name>Heads x230 System Update</name>
+    <summary>x230 heads system firmware</summary>
     <description>
-      <p>Lenovo x230 heads system firmware</p>
+      <p>x230 heads system firmware</p>
     </description>
     <provides>
       <firmware type="flashed">596c3466-0506-5ca5-a68f-dc34532a93d3</firmware>
@@ -818,117 +818,31 @@ HEADS_XML = """<?xml version='1.0' encoding='utf-8'?>
       <category>X-System</category>
     </X-categories>
     <releases>
-      <release version="4.19.0" timestamp="1598918400" urgency="high">
-        <location>https://fwupd.org/downloads/10176eb94fa364e5a3ce1085d8076f38a5cdc92865a98f8bd2cf711e5c645072-heads_coreboot_x230-v4_19_0.cab</location>
-        <checksum type="sha1" filename="10176eb94fa364e5a3ce1085d8076f38a5cdc92865a98f8bd2cf711e5c645072-heads_coreboot_x230-v4_19_0.cab" target="container">cf3af2382cbd3c438281d33daef63b69af7854cd</checksum>
-        <checksum type="sha256" filename="10176eb94fa364e5a3ce1085d8076f38a5cdc92865a98f8bd2cf711e5c645072-heads_coreboot_x230-v4_19_0.cab" target="container">6de5d65e0b911f05ae3d5bb18ad5547cb5bb10c88066686d79e369c6c67cdd11</checksum>
-        <checksum type="sha1" filename="firmware.rom" target="content">fe15f41dc8822a89b8e24713f96d015d2877482e</checksum>
-        <checksum type="sha256" filename="firmware.rom" target="content">cb78a05ce09b4ea67ce576d696ac00cb1bb4d5d589da8f41cfb2dae75d579023</checksum>
+      <release version="0.2.3" timestamp="1599436800" urgency="high">
+        <location>https://fwupd.org/downloads/e747a435bf24fd6081b77b6704b39cec5fa2dcf62e0ca6b86d8a6460121a1d07-heads_coreboot_x230-v0_2_3.cab</location>
+        <checksum type="sha1" filename="e747a435bf24fd6081b77b6704b39cec5fa2dcf62e0ca6b86d8a6460121a1d07-heads_coreboot_x230-v0_2_3.cab" target="container">1a54e69ca2b58d1218035115d481480eaf4c66e4</checksum>
+        <checksum type="sha256" filename="e747a435bf24fd6081b77b6704b39cec5fa2dcf62e0ca6b86d8a6460121a1d07-heads_coreboot_x230-v0_2_3.cab" target="container">ba519a7a5d8136c8ade0cf0c775c58f3165f42798ff631c3f57f075897ef1586</checksum>
+        <checksum type="sha1" filename="firmware.rom" target="content">76373f1b5a157b6563d3605271472901b03f57f3</checksum>
+        <checksum type="sha256" filename="firmware.rom" target="content">9a9c5dbd3faf90ff7a1f4c9be8d71c4db93dd69fa690f8722fec19c5a51aed9e</checksum>
+        <description>
+          <p>Fixes flash-gui issue.</p>
+        </description>
+        <size type="installed">12582912</size>
+        <size type="download">12591670</size>
+      </release>
+      <release version="0.2.2" timestamp="1599436800" urgency="high">
+        <location>https://fwupd.org/downloads/1a0f0ad487a40bb27a49db55e256a207a33dac92c5c53761501c9fb89e4fd115-heads_coreboot_x230-v0_2_2.cab</location>
+        <checksum type="sha1" filename="1a0f0ad487a40bb27a49db55e256a207a33dac92c5c53761501c9fb89e4fd115-heads_coreboot_x230-v0_2_2.cab" target="container">58e85d012ad1d5c6f98e8fe65202b4d6c8a6ec03</checksum>
+        <checksum type="sha256" filename="1a0f0ad487a40bb27a49db55e256a207a33dac92c5c53761501c9fb89e4fd115-heads_coreboot_x230-v0_2_2.cab" target="container">94430160d35cf74adf29c7fc1490b44497e1a3f0fff72733efe2982c61c9a772</checksum>
+        <checksum type="sha1" filename="firmware.rom" target="content">8e97ce38396e281fcf9a5a248819925a2fa04265</checksum>
+        <checksum type="sha256" filename="firmware.rom" target="content">a6774661407622f345bf0ac2f113540507f0288bb97bf5dba586059c0653f659</checksum>
         <description>
           <p>Lenovo x230 heads system firmware</p>
         </description>
-        <url type="details">https://fwupd.org/downloads/10176eb94fa364e5a3ce1085d8076f38a5cdc92865a98f8bd2cf711e5c645072-heads_coreboot_x230-v4_19_0.cab</url>
-        <url type="source">https://github.com/osresearch/heads</url>
         <size type="installed">12582912</size>
-        <size type="download">12591924</size>
+        <size type="download">12591680</size>
       </release>
     </releases>
-  </component>
-  <component type="firmware">
-    <id>com.Libretrend.LT1000.firmware</id>
-    <name>LT1000 Coreboot Device Update</name>
-    <summary>Firmware for the Libretrend LT1000 platform</summary>
-    <description>
-      <p>The platform can be updated using flashrom (internal programmer).</p>
-    </description>
-    <provides>
-      <firmware type="flashed">52b68c34-6b31-5ecc-8a5c-de37e666ccd5</firmware>
-    </provides>
-    <url type="homepage">http://www.3mdeb.com/</url>
-    <metadata_license>CC0-1.0</metadata_license>
-    <project_license>Proprietary</project_license>
-    <developer_name>Libretrend</developer_name>
-    <X-categories>
-      <category>X-Device</category>
-    </X-categories>
-    <custom>
-      <value key="LVFS::VersionFormat">quad</value>
-      <value key="LVFS::UpdateProtocol">org.flashrom</value>
-    </custom>
-    <releases>
-      <release version="4.9.0.1" timestamp="1548460800" urgency="high">
-        <location>https://fwupd.org/downloads/83d2fb2e3e8340fa9ceadd2fde38d2cdb2b731e3-com.Libretrend.LT1000.firmware.cab</location>
-        <checksum type="sha1" filename="83d2fb2e3e8340fa9ceadd2fde38d2cdb2b731e3-com.Libretrend.LT1000.firmware.cab" target="container">be118fc3e970698d67d8dc9dbd11147529eeb13d</checksum>
-        <checksum type="sha256" filename="83d2fb2e3e8340fa9ceadd2fde38d2cdb2b731e3-com.Libretrend.LT1000.firmware.cab" target="container">e928e47fe6c0f161efc6b5020be628b9f90f65cf65f4b2c7a12cf55a59d885be</checksum>
-        <checksum type="sha1" filename="com.Libretrend.LT1000.firmware.bin" target="content">96bffbef9c593352a6717e21caccee60b309a162</checksum>
-        <checksum type="sha256" filename="com.Libretrend.LT1000.firmware.bin" target="content">8817749a65766cc5543a74f3c2d8ffdd3338664fddc36bd5d40965cf20ce4b68</checksum>
-        <description>
-          <p>This release features:</p>
-          <ul>
-            <li>Moved console initialization and sign-of-life to bootblock</li>
-            <li>Fixed the CBFS size to 6MB</li>
-            <li>Minor build fixes</li>
-            <li>Rebased on official coreboot repository commit 2ef569a4</li>
-          </ul>
-        </description>
-        <size type="installed">8388608</size>
-        <size type="download">1167446</size>
-      </release>
-      <release version="4.8.0.4" timestamp="1544400000" urgency="high">
-        <location>https://fwupd.org/downloads/77c84dc75f74b225eaa7508b1f278fd9f5177bfc-com.Libretrend.LT1000.firmware.cab</location>
-        <checksum type="sha1" filename="77c84dc75f74b225eaa7508b1f278fd9f5177bfc-com.Libretrend.LT1000.firmware.cab" target="container">f8e7b545c2224da0f74d6e6ca75682202b95b541</checksum>
-        <checksum type="sha256" filename="77c84dc75f74b225eaa7508b1f278fd9f5177bfc-com.Libretrend.LT1000.firmware.cab" target="container">39dcf80a930823fd01c9209132e50b1e8ac9755eeeb8b5946194537345255e3f</checksum>
-        <checksum type="sha1" filename="com.Libretrend.LT1000.firmware.bin" target="content">2dc5614fb76124a42f6c86fc4628b25359de1198</checksum>
-        <checksum type="sha256" filename="com.Libretrend.LT1000.firmware.bin" target="content">2cca5704aeee2f6f6f094fcc911643ab32f72948d914596bca6dc0b8a94c9712</checksum>
-        <description>
-          <p>This release features:</p>
-          <ul>
-            <li>Support for Libretrend TPM2.0 module</li>
-            <li>Added bootorder with internal SSD as first priority</li>
-            <li>The LED near power button will shine red on any hard disk activity</li>
-            <li>SeaBIOS updated to rel-1.12.0</li>
-            <li>Synced and rebased to official coreboot commit 967b1963</li>
-          </ul>
-        </description>
-        <size type="installed">8388608</size>
-        <size type="download">1852546</size>
-      </release>
-      <release version="4.8.0.3" timestamp="1537833600" urgency="high">
-        <location>https://fwupd.org/downloads/47f19f4cde49ac06febf37e0b0b64f66a81a9c07-com.Libretrend.LT1000.firmware.cab</location>
-        <checksum type="sha1" filename="47f19f4cde49ac06febf37e0b0b64f66a81a9c07-com.Libretrend.LT1000.firmware.cab" target="container">7d13a74c288341e2f099e61815beb58e96c9e055</checksum>
-        <checksum type="sha256" filename="47f19f4cde49ac06febf37e0b0b64f66a81a9c07-com.Libretrend.LT1000.firmware.cab" target="container">7bf9c9188f116a00123a1df6a63e5aaa867da4a9018da7452734a894310b7b9a</checksum>
-        <checksum type="sha1" filename="com.Libretrend.LT1000.firmware.bin" target="content">d2d49b0c187449a1660ac3afb5bcfc35cdfc873b</checksum>
-        <checksum type="sha256" filename="com.Libretrend.LT1000.firmware.bin" target="content">4c6ab6351d0614dd41b5ae108d474573bdd26562acf9f6633dcc696b45bfdf30</checksum>
-        <description>
-          <p>This release features:</p>
-          <ul>
-            <li>DIMMs presence is determined automatically</li>
-            <li>Enabled all SATA ports on the board</li>
-            <li>Configured PC speaker GPIO</li>
-          </ul>
-        </description>
-        <size type="installed">8388608</size>
-        <size type="download">1167977</size>
-      </release>
-      <release version="4.8.0.2" timestamp="1535846400" urgency="high">
-        <location>https://fwupd.org/downloads/87c3110d6e1fd2be9c860f1b45b6291ffae0b6a6-com.Libretrend.LT1000.firmware.cab</location>
-        <checksum type="sha1" filename="87c3110d6e1fd2be9c860f1b45b6291ffae0b6a6-com.Libretrend.LT1000.firmware.cab" target="container">01c6d751a5b58c78ae2f93b4442059e5390d4377</checksum>
-        <checksum type="sha256" filename="87c3110d6e1fd2be9c860f1b45b6291ffae0b6a6-com.Libretrend.LT1000.firmware.cab" target="container">96ebf025fbb7b5d9320a76500724f104b2b29baf276b6abc316dd0c35116b60c</checksum>
-        <checksum type="sha1" filename="com.Libretrend.LT1000.firmware.bin" target="content">1b68ef2b4285bcc494d717e447ce93b5dca0c800</checksum>
-        <checksum type="sha256" filename="com.Libretrend.LT1000.firmware.bin" target="content">9182f4c2530d0b1a77fcbf1efdcae45013c34127f2c8fa730930f251fe93fff9</checksum>
-        <description>
-          <p>This release adds integration with new Intel FSP.</p>
-        </description>
-        <size type="installed">8388608</size>
-        <size type="download">1166270</size>
-      </release>
-    </releases>
-    <requires>
-      <id compare="ge" version="1.1.2">org.freedesktop.fwupd</id>
-      <id compare="ge" version="1.1.2">org.freedesktop.fwupd</id>
-      <id compare="ge" version="1.1.2">org.freedesktop.fwupd</id>
-      <id compare="ge" version="1.1.2">org.freedesktop.fwupd</id>
-    </requires>
   </component>
 </components>
 """
