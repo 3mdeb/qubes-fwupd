@@ -39,11 +39,11 @@ class TestQubesFwupdHeads(unittest.TestCase):
     @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_parse_metadata(self):
         qmgr = qfwupd.QubesFwupdmgr()
-        qmgr._download_metadata(metadata_url=CUSTOM_METADATA)
         qmgr.metadata_file = CUSTOM_METADATA.replace(
             "https://fwupd.org/downloads",
             qfwupd.FWUPD_DOM0_METADATA_DIR
         )
+        qmgr._download_metadata(metadata_url=CUSTOM_METADATA)
         self.q._parse_metadata(qmgr.metadata_file)
         self.assertTrue(self.q.metadata_info)
 
@@ -105,7 +105,8 @@ class TestQubesFwupdHeads(unittest.TestCase):
         )
         if os.path.exists(heads_boot_path):
             shutil.rmtree(heads_boot_path)
-        self.q._copy_heads_firmware(qmgr.arch_path)
+        ret_code = self.q._copy_heads_firmware(qmgr.arch_path)
+        self.assertNotEqual(ret_code, qfwupd.EXIT_CODES["NO_UPDATES"])
         firmware_path = os.path.join(heads_boot_path, "firmware.rom")
         self.assertTrue(os.path.exists(firmware_path))
 
