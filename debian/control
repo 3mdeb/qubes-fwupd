@@ -5,7 +5,7 @@ Maintainer: Norbert Kamiński (Asiderr) <norbert.kaminski@3mdeb.com>
 Build-Depends:
     debhelper (>= 10~),
     config-package-dev
-Standards-Version: 0.1.4
+Standards-Version: 0.2.0
 Homepage: https://fwupd.org/
 
 Package: qubes-fwupd-vm-whonix
