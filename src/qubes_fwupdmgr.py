@@ -94,7 +94,7 @@ HELP = {
     "Usage": [
         {
             "Command": "qubes-fwupdmgr [OPTION…][FLAG..]",
-            "Examples": "qubes-fwupdmgr refresh --whonix --url=<url>\n",
+            "Example": "qubes-fwupdmgr refresh --whonix --url=<url>\n",
         }
     ],
     "Options": [
@@ -103,7 +103,7 @@ HELP = {
             "get-updates": "Get the list of updates for connected hardware",
             "refresh": "Refresh metadata from remote server",
             "update": "Update chosen device to latest firmware version",
-            "update-heads": "Updates heads firmware to the lastest version",
+            "update-heads": "Updates heads firmware to the latest version",
             "downgrade": "Downgrade chosen device to chosen firmware version",
             "clean": "Delete all cached update files\n"
         }
@@ -112,7 +112,7 @@ HELP = {
         {
             "--whonix": "Download firmware updates via Tor",
             "--device": "Specify device for heads update (default - x230)",
-            "--url": "Adress of the custom metadata remote server\n"
+            "--url": "Address of the custom metadata remote server\n"
         }
     ],
     "Help": [
@@ -759,7 +759,7 @@ class QubesFwupdmgr(FwupdHeads):
             shell=True
         )
         p.wait()
-        if p.returncode != 0:
+        if p.returncode != 0 and not os.path.exists(FWUPD_USBVM_LOG):
             raise Exception("fwudp-qubes: Getting usbvm devices info failed")
         if not os.path.exists(FWUPD_USBVM_LOG) and self.fwupdagent_usbvm:
             raise Exception("usbvm device info log does not exist")
@@ -771,6 +771,8 @@ class QubesFwupdmgr(FwupdHeads):
         usbvm_devices_info - gathered usbvm information
         """
         self.usbvm_updates_list = []
+        if "No detected devices" in usbvm_devices_info:
+            return EXIT_CODES["NO_UPDATES"]
         usbvm_device_info_dict = json.loads(usbvm_devices_info)
         for device in usbvm_device_info_dict["Devices"]:
             if "Releases" in device:
@@ -928,6 +930,8 @@ class QubesFwupdmgr(FwupdHeads):
         device_list -- list of connected devices
         """
         downgrades = []
+        if "No detected devices" in device_list:
+            return downgrades
         dom0_devices_info_dict = json.loads(device_list)
         for device in dom0_devices_info_dict["Devices"]:
             if "Releases" in device:
@@ -1154,7 +1158,13 @@ class QubesFwupdmgr(FwupdHeads):
             self._get_usbvm_devices()
         if usbvm and self.fwupdagent_usbvm:
             with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-                usbvm_device_info_dict = json.loads(usbvm_device_info.read())
+                if "No detected devices" not in usbvm_device_info.read():
+                    usbvm_device_info_dict = json.loads(
+                        usbvm_device_info.read()
+                    )
+                else:
+                    print(f"No detected devices in {USBVM_N}")
+                    return EXIT_CODES["NO_UPDATES"]
             self._output_crawler(usbvm_device_info_dict, 0, dom0=False)
 
     def get_updates_qubes(self, usbvm=False):

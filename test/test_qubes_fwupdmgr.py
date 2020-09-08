@@ -1139,11 +1139,12 @@ class TestQubesFwupdmgr(unittest.TestCase):
         self.q.check_fwupd_version(usbvm=True)
         Path(BIOS_UPDATE_FLAG).touch(mode=0o644, exist_ok=True)
         self.q.refresh_metadata_after_bios_update(usbvm=True)
-        self.assertEqual(
-            self.q.output,
-            'Successfully refreshed metadata manually\n',
-            msg="Metadata refresh failed."
-        )
+        if self.q.fwupdagent_dom0 == qfwupd.FWUPDAGENT_NEW:
+            self.assertEqual(
+                self.q.output,
+                'Successfully refreshed metadata manually\n',
+                msg="Metadata refresh failed."
+            )
 
     @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
     def test_trusted_cleanup(self):
