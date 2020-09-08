@@ -759,7 +759,8 @@ class QubesFwupdmgr(FwupdHeads):
             shell=True
         )
         p.wait()
-        if p.returncode != 0 and not os.path.exists(FWUPD_USBVM_LOG):
+        if (p.returncode != 0 and p.returncode != 2
+                and not os.path.exists(FWUPD_USBVM_LOG)):
             raise Exception("fwudp-qubes: Getting usbvm devices info failed")
         if not os.path.exists(FWUPD_USBVM_LOG) and self.fwupdagent_usbvm:
             raise Exception("usbvm device info log does not exist")
@@ -889,7 +890,8 @@ class QubesFwupdmgr(FwupdHeads):
         if self.fwupdagent_usbvm:
             self._get_usbvm_devices()
             with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-                self._parse_usbvm_updates(usbvm_device_info.read())
+                raw = usbvm_device_info.read()
+                self._parse_usbvm_updates(raw)
         if self.fwupdagent_usbvm and self.fwupdagent_dom0:
             update_dict = {
                 "usbvm": self.usbvm_updates_list,
@@ -992,9 +994,8 @@ class QubesFwupdmgr(FwupdHeads):
         if self.fwupdagent_usbvm:
             self._get_usbvm_devices()
             with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-                usbvm_downgrades = self._parse_downgrades(
-                    usbvm_device_info.read()
-                )
+                raw = usbvm_device_info.read()
+                usbvm_downgrades = self._parse_downgrades(raw)
         if self.fwupdagent_usbvm and self.fwupdagent_dom0:
             downgrade_dict = {
                 "usbvm": usbvm_downgrades,
@@ -1158,10 +1159,9 @@ class QubesFwupdmgr(FwupdHeads):
             self._get_usbvm_devices()
         if usbvm and self.fwupdagent_usbvm:
             with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-                if "No detected devices" not in usbvm_device_info.read():
-                    usbvm_device_info_dict = json.loads(
-                        usbvm_device_info.read()
-                    )
+                raw = usbvm_device_info.read()
+                if "No detected devices" not in raw:
+                    usbvm_device_info_dict = json.loads(raw)
                 else:
                     print(f"No detected devices in {USBVM_N}")
                     return EXIT_CODES["NO_UPDATES"]
@@ -1180,7 +1180,8 @@ class QubesFwupdmgr(FwupdHeads):
         if usbvm and self.fwupdagent_usbvm:
             self._get_usbvm_devices()
             with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-                self._parse_usbvm_updates(usbvm_device_info.read())
+                raw = usbvm_device_info.read()
+                self._parse_usbvm_updates(raw)
             self._updates_crawler(self.usbvm_updates_list, usbvm=True)
         elif usbvm and not self.fwupdagent_usbvm:
             self._get_usbvm_updates_old()

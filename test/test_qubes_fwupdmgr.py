@@ -546,11 +546,18 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_update_n_downgrade_firmware_whonix(self):
         old_version = None
         self.q.check_fwupd_version(usbvm=True)
-        self.q._get_dom0_devices()
+        if self.q.fwupdagent_dom0:
+            self.q._get_dom0_devices()
+            dom0_downgrades = self.q._parse_downgrades(
+                self.q.dom0_devices_info
+            )
+        else:
+            dom0_downgrades = []
         dom0_downgrades = self.q._parse_downgrades(self.q.dom0_devices_info)
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-            downgrades = self.q._parse_downgrades(usbvm_device_info.read())
+            raw = usbvm_device_info.read()
+            downgrades = self.q._parse_downgrades(raw)
             for number, device in enumerate(downgrades):
                 if "Name" not in device:
                     continue
@@ -564,7 +571,8 @@ class TestQubesFwupdmgr(unittest.TestCase):
             self.q.downgrade_firmware(usbvm=True, whonix=True)
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-            downgrades = self.q._parse_downgrades(usbvm_device_info.read())
+            raw = usbvm_device_info.read()
+            downgrades = self.q._parse_downgrades(raw)
         new_version = downgrades[number]["Version"]
         self.assertTrue(
             l_ver(old_version) > l_ver(new_version)
@@ -572,11 +580,15 @@ class TestQubesFwupdmgr(unittest.TestCase):
         old_version = None
         new_version = None
         self.q.check_fwupd_version(usbvm=True)
-        self.q._get_dom0_updates()
-        self.q._parse_dom0_updates_info(self.q.dom0_updates_info)
+        if self.q.fwupdagent_dom0:
+            self.q._get_dom0_updates()
+            self.q._parse_dom0_updates_info(self.q.dom0_updates_info)
+        else:
+            self.q.dom0_updates_list = []
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-            self.q._parse_usbvm_updates(usbvm_device_info.read())
+            raw = usbvm_device_info.read()
+            self.q._parse_usbvm_updates(raw)
             for number, device in enumerate(self.q.usbvm_updates_list):
                 if "Name" not in device:
                     continue
@@ -590,7 +602,8 @@ class TestQubesFwupdmgr(unittest.TestCase):
             self.q.update_firmware(usbvm=True, whonix=True)
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-            usbvm_devices_info_dict = json.loads(usbvm_device_info.read())
+            raw = usbvm_device_info.read()
+            usbvm_devices_info_dict = json.loads(raw)
         for device in usbvm_devices_info_dict["Devices"]:
             if "Name" not in device:
                 continue
@@ -607,11 +620,17 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_downgrade_firmware_usbvm(self):
         old_version = None
         self.q.check_fwupd_version(usbvm=True)
-        self.q._get_dom0_devices()
-        dom0_downgrades = self.q._parse_downgrades(self.q.dom0_devices_info)
+        if self.q.fwupdagent_dom0:
+            self.q._get_dom0_devices()
+            dom0_downgrades = self.q._parse_downgrades(
+                self.q.dom0_devices_info
+            )
+        else:
+            dom0_downgrades = []
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-            downgrades = self.q._parse_downgrades(usbvm_device_info.read())
+            raw = usbvm_device_info.read()
+            downgrades = self.q._parse_downgrades(raw)
             for number, device in enumerate(downgrades):
                 if "Name" not in device:
                     continue
@@ -625,7 +644,8 @@ class TestQubesFwupdmgr(unittest.TestCase):
             self.q.downgrade_firmware(usbvm=True)
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-            downgrades = self.q._parse_downgrades(usbvm_device_info.read())
+            raw = usbvm_device_info.read()
+            downgrades = self.q._parse_downgrades(raw)
         new_version = downgrades[number]["Version"]
         self.assertTrue(
             l_ver(old_version) > l_ver(new_version)
@@ -792,11 +812,15 @@ class TestQubesFwupdmgr(unittest.TestCase):
         old_version = None
         new_version = None
         self.q.check_fwupd_version(usbvm=True)
-        self.q._get_dom0_updates()
-        self.q._parse_dom0_updates_info(self.q.dom0_updates_info)
+        if self.q.fwupdagent_dom0:
+            self.q._get_dom0_updates()
+            self.q._parse_dom0_updates_info(self.q.dom0_updates_info)
+        else:
+            self.q.dom0_updates_list = []
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-            self.q._parse_usbvm_updates(usbvm_device_info.read())
+            raw = usbvm_device_info.read()
+            self.q._parse_usbvm_updates(raw)
             for number, device in enumerate(self.q.usbvm_updates_list):
                 if "Name" not in device:
                     continue
@@ -810,7 +834,8 @@ class TestQubesFwupdmgr(unittest.TestCase):
             self.q.update_firmware(usbvm=True)
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
-            usbvm_devices_info_dict = json.loads(usbvm_device_info.read())
+            raw = usbvm_device_info.read()
+            usbvm_devices_info_dict = json.loads(raw)
         for device in usbvm_devices_info_dict["Devices"]:
             if "Name" not in device:
                 continue
