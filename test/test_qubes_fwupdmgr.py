@@ -546,6 +546,7 @@ class TestQubesFwupdmgr(unittest.TestCase):
     def test_update_n_downgrade_firmware_whonix(self):
         old_version = None
         self.q.check_fwupd_version(usbvm=True)
+        self.q.clean_cache(usbvm=True)
         if self.q.fwupdagent_dom0:
             self.q._get_dom0_devices()
             dom0_downgrades = self.q._parse_downgrades(
@@ -553,7 +554,6 @@ class TestQubesFwupdmgr(unittest.TestCase):
             )
         else:
             dom0_downgrades = []
-        dom0_downgrades = self.q._parse_downgrades(self.q.dom0_devices_info)
         self.q._get_usbvm_devices()
         with open(FWUPD_USBVM_LOG) as usbvm_device_info:
             raw = usbvm_device_info.read()
@@ -1159,11 +1159,12 @@ class TestQubesFwupdmgr(unittest.TestCase):
             self.assertEqual(self.q.fwupdagent_usbvm, "/bin/fwupdagent")
             self.assertTrue(self.q.jcat)
 
-    @unittest.skipUnless(check_usbvm(), REQUIRED_USBVM)
+    @unittest.skipUnless('qubes' in platform.release(), "Requires Qubes OS")
     def test_bios_refresh_metadata(self):
-        self.q.check_fwupd_version(usbvm=True)
+        sys_usb = self.q.check_usbvm()
+        self.q.check_fwupd_version(usbvm=sys_usb)
         Path(BIOS_UPDATE_FLAG).touch(mode=0o644, exist_ok=True)
-        self.q.refresh_metadata_after_bios_update(usbvm=True)
+        self.q.refresh_metadata_after_bios_update(usbvm=sys_usb)
         if self.q.fwupdagent_dom0 == qfwupd.FWUPDAGENT_NEW:
             self.assertEqual(
                 self.q.output,
