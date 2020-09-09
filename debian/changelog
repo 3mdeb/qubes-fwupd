@@ -1,3 +1,10 @@
+qubes-fwupd (0.2.1) stable; urgency=high
+
+    [ Norbert Kamiński (Asiderr) ]
+    * Add documentation
+
+    -- Norbert Kamiński <norbert.kaminski@3mdeb.com>  Thu, 9 Sep 2020 22:00:55 +0200
+
 qubes-fwupd (0.2.0) stable; urgency=high
 
     [ Norbert Kamiński (Asiderr) ]
