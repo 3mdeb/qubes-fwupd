@@ -28,7 +28,7 @@ fwupd wrapper for QubesOS
 
 **fwupd version - VMs:** 1.2.6 or higher
 
-qubes-fwupd do not support dom0 updates and downgrades for fwupd 0.9.5 and
+qubes-fwupd does not support dom0 updates and downgrades for fwupd 0.9.5 and
 older. Use sys-usb to update external devices.
 
 ## Usage
@@ -260,10 +260,9 @@ Note: If the whonix tests failed, make sure that you are connected to the Tor
 
 [![asciicast](https://asciinema.org/a/TgHOkLnD2YICxB0U80PVcQGqX.svg)](https://asciinema.org/a/TgHOkLnD2YICxB0U80PVcQGqX)
 
-
 #### Qubes OS 4.0
 
-Make sure that you are using python 3.6!!!
+**Make sure that you are using Python 3.6!**
 
 ```
 # python36 -m unittest -v test.test_qubes_fwupdmgr
@@ -290,7 +289,6 @@ More specified information you will find in the
 
 Requirements and more specified information you will find in the
 [UEFI capsule update documentation](doc/uefi_capsule_update.md).
-
 
 ## Heads update
 

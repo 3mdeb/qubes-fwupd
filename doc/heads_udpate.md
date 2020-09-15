@@ -1,5 +1,7 @@
 # Heads update
 
+The Heads update was tested on the `Lenovo ThinkPad x230`.
+
 ## Requirements
 
 You need to build and flash Heads ROM from the
