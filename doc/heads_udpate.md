@@ -78,9 +78,8 @@ privileges.
 ### Qubes OS R4.1
 
 qubes-fwupd supports Heads updates in this OS version but currently, the Qubes
-4.1 does not work correctly under the Heads due to Xen regression. More
-information you will find in the following
-[GitHub issue](https://github.com/osresearch/heads/issues/789).
+4.1 does not work correctly under the Heads. You can find more information in
+the following [GitHub issue](https://github.com/osresearch/heads/issues/789).
 
 ```
 # python3 -m unittest -v test.test_qubes_fwupd_heads
