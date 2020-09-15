@@ -1,0 +1,8 @@
+#!/bin/bash
+
+make install-deps
+rm -rf qubes-src/fwupd
+sudo dnf install python2 -y
+make get-sources
+make remount
+make fwupd

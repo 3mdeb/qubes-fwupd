@@ -24,11 +24,11 @@ while [ -n "$1" ]; do
             METADATA=1
             ;;
         --url=*)
-            UPDATE=1
             URL=${1#--url=}
             FW_NAME=${1#--url=https://fwupd.org/downloads/}
             ;;
         --sha=*)
+            UPDATE=1
             SHASUM=${1#--sha=}
             ;;
         -*)
@@ -77,17 +77,31 @@ if [[ "$URL" == *"--hash--"* ]]; then
     FW_NAME="untrusted.cab"
 fi
 
-if [ "$METADATA" == "1" ]; then
+if [ "$METADATA" == "1" ] && [ -z "$URL" ]; then
     echo "Downloading metadata."
     rm -rf $FWUPD_UPDATEVM_DIR/metadata/*
     wget -P $FWUPD_UPDATEVM_DIR/metadata \
-        https://cdn.fwupd.org/downloads/firmware.xml.gz
+        https://fwupd.org/downloads/firmware.xml.gz
     wget -P $FWUPD_UPDATEVM_DIR/metadata \
-        https://cdn.fwupd.org/downloads/firmware.xml.gz.jcat
+        https://fwupd.org/downloads/firmware.xml.gz.jcat
     wget -P $FWUPD_UPDATEVM_DIR/metadata \
-        https://cdn.fwupd.org/downloads/firmware.xml.gz.asc
+        https://fwupd.org/downloads/firmware.xml.gz.asc
     gpg --verify $FWUPD_UPDATEVM_DIR/metadata/firmware.xml.gz.asc \
         $FWUPD_UPDATEVM_DIR/metadata/firmware.xml.gz
+    if [ ! $? -eq 0 ]; then
+        echo "Signature did NOT match. Exiting..."
+        exit 1
+    fi
+fi
+
+if [ "$METADATA" == "1" ] && [ -n "$URL" ]; then
+    echo "Downloading metadata."
+    rm -rf $FWUPD_UPDATEVM_DIR/metadata/*
+    wget -P $FWUPD_UPDATEVM_DIR/metadata $URL
+    wget -P $FWUPD_UPDATEVM_DIR/metadata $URL.jcat
+    wget -P $FWUPD_UPDATEVM_DIR/metadata $URL.asc
+    gpg --verify $FWUPD_UPDATEVM_DIR/metadata/$FW_NAME.asc \
+        $FWUPD_UPDATEVM_DIR/metadata/$FW_NAME
     if [ ! $? -eq 0 ]; then
         echo "Signature did NOT match. Exiting..."
         exit 1

@@ -1,0 +1,66 @@
+From 2b3e4dcc1dceda2a7bca3dbe36165ab7b1e9bd51 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Norbert=20Kami=C5=84ski?= <norbert.kaminski@3mdeb.com>
+Date: Mon, 17 Aug 2020 06:04:05 -0400
+Subject: [PATCH] esrt: Add paravirtualization support
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Norbert Kamiński <norbert.kaminski@3mdeb.com>
+---
+ arch/x86/kernel/setup.c     | 2 +-
+ drivers/firmware/efi/esrt.c | 7 ++++++-
+ 2 files changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index 77ea96b794bd..392e444f2761 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -1122,7 +1122,7 @@ void __init setup_arch(char **cmdline_p)
+ 
+ 	reserve_bios_regions();
+ 
+-	if (efi_enabled(EFI_MEMMAP)) {
++	if (EFI_MEMMAP) {
+ 		efi_fake_memmap();
+ 		efi_find_mirror();
+ 		efi_esrt_init();
+diff --git a/drivers/firmware/efi/esrt.c b/drivers/firmware/efi/esrt.c
+index d6dd5f503fa2..0183f523608b 100644
+--- a/drivers/firmware/efi/esrt.c
++++ b/drivers/firmware/efi/esrt.c
+@@ -246,10 +246,14 @@ void __init efi_esrt_init(void)
+ 	int rc;
+ 	phys_addr_t end;
+ 
++	if (!efi_enabled(EFI_MEMMAP) && !efi_enabled(EFI_PARAVIRT))
++		return;
++
+ 	pr_debug("esrt-init: loading.\n");
+ 	if (!esrt_table_exists())
+ 		return;
+ 
++	if (!efi_enabled(EFI_PARAVIRT)) {
+ 	rc = efi_mem_desc_lookup(efi.esrt, &md);
+ 	if (rc < 0 ||
+ 	    (!(md.attribute & EFI_MEMORY_RUNTIME) &&
+@@ -274,6 +278,7 @@ void __init efi_esrt_init(void)
+ 		       size, max);
+ 		return;
+ 	}
++	}
+ 
+ 	va = early_memremap(efi.esrt, size);
+ 	if (!va) {
+@@ -330,7 +335,7 @@ void __init efi_esrt_init(void)
+ 
+ 	end = esrt_data + size;
+ 	pr_info("Reserving ESRT space from %pa to %pa.\n", &esrt_data, &end);
+-	if (md.type == EFI_BOOT_SERVICES_DATA)
++	if (!efi_enabled(EFI_PARAVIRT) && md.type == EFI_BOOT_SERVICES_DATA)
+ 		efi_mem_reserve(esrt_data, esrt_data_size);
+ 
+ 	pr_debug("esrt-init: loaded.\n");
+-- 
+2.26.2
+

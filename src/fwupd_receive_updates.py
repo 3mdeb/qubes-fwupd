@@ -41,7 +41,7 @@ FWUPD_DOM0_METADATA_FILE = path.join(
     FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz"
 )
-FWUPD_DOM0_METADATA_FILE_JCAT = path.join(
+FWUPD_DOM0_METADATA_JCAT = path.join(
     FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz.jcat"
 )
@@ -61,10 +61,10 @@ FWUPD_UPDATEVM_METADATA_JCAT = path.join(
     FWUPD_UPDATEVM_METADATA_DIR,
     "firmware.xml.gz.jcat"
 )
-
+FWUPD_DOWNLOAD_PREFIX = "https://fwupd.org/downloads/"
 FWUPD_METADATA_FLAG_REGEX = re.compile(r"^metaflag")
 FWUPD_METADATA_FILES_REGEX = re.compile(
-    r"^firmware.xml.gz.?[aj]?[sc]?[ca]?t?$"
+    r"^firmware[a-z0-9\[\]\@\<\>\.\"\"\-]{0,128}.xml.gz.?[aj]?[sc]?[ca]?t?$"
 )
 GPG_LVFS_REGEX = re.compile(
     r"gpg: Good signature from [a-z0-9\[\]\@\<\>\.\"\"]{1,128}"
@@ -246,31 +246,60 @@ class FwupdReceiveUpdates:
         shutil.rmtree(FWUPD_DOM0_UNTRUSTED_DIR)
         exit(0)
 
-    def handle_metadata_update(self, updatevm):
+    def handle_metadata_update(self, updatevm, metadata_url=None):
         """Copies metadata files from the updateVM.
 
         Keyword argument:
         updatevm -- update VM name
         """
+        if metadata_url:
+            metadata_name = metadata_url.replace(
+                FWUPD_DOWNLOAD_PREFIX,
+                ""
+            )
+            self.metadata_file = os.path.join(
+                FWUPD_DOM0_METADATA_DIR,
+                metadata_name
+            )
+            self.metadata_file_signature = self.metadata_file + '.asc'
+            self.metadata_file_jcat = self.metadata_file + '.jcat'
+        else:
+            self.metadata_file = FWUPD_DOM0_METADATA_FILE
+            self.metadata_file_signature = FWUPD_DOM0_METADATA_SIGNATURE
+            self.metadata_file_jcat = FWUPD_DOM0_METADATA_JCAT
+        self.metadata_file_updatevm = self.metadata_file.replace(
+            FWUPD_DOM0_METADATA_DIR,
+            FWUPD_UPDATEVM_METADATA_DIR
+        )
+        self.metadata_file_signature_updatevm = (
+            self.metadata_file_signature.replace(
+                FWUPD_DOM0_METADATA_DIR,
+                FWUPD_UPDATEVM_METADATA_DIR
+            )
+        )
+        self.metadata_file_jcat_updatevm = self.metadata_file_jcat.replace(
+            FWUPD_DOM0_METADATA_DIR,
+            FWUPD_UPDATEVM_METADATA_DIR
+        )
         self._check_domain(updatevm)
         self._create_dirs(FWUPD_DOM0_METADATA_DIR)
-        cmd_file = "'cat %s'" % FWUPD_UPDATEVM_METADATA_FILE
-        cmd_signature = "'cat %s'" % FWUPD_UPDATEVM_METADATA_SIGNATURE
-        cmd_jcat = "'cat %s'" % FWUPD_UPDATEVM_METADATA_JCAT
+        cmd_file = "'cat %s'" % self.metadata_file_updatevm
+        cmd_signature = "'cat %s'" % self.metadata_file_signature_updatevm
+        cmd_jcat = "'cat %s'" % self.metadata_file_jcat_updatevm
         cmd_copy_metadata_file = 'qvm-run --pass-io %s %s > %s' % (
             updatevm,
             cmd_file,
-            FWUPD_DOM0_METADATA_FILE
+            self.metadata_file
         )
         cmd_copy_metadata_signature = 'qvm-run --pass-io %s %s > %s' % (
             updatevm,
             cmd_signature,
-            FWUPD_DOM0_METADATA_SIGNATURE
+            self.metadata_file_signature
         )
         cmd_copy_metadata_jcat = 'qvm-run --pass-io %s %s > %s' % (
             updatevm,
             cmd_jcat,
-            FWUPD_DOM0_METADATA_FILE_JCAT
+            self.metadata_file_jcat
         )
 
         p = subprocess.Popen(cmd_copy_metadata_file, shell=True)
@@ -291,22 +320,26 @@ class FwupdReceiveUpdates:
             FWUPD_METADATA_FILES_REGEX,
             updatevm
         )
-        self._gpg_verification(FWUPD_DOM0_METADATA_FILE)
+        self._gpg_verification(self.metadata_file)
         os.umask(self.old_umask)
         exit(0)
 
 
 def main():
+    if len(sys.argv) < 3:
+        raise Exception("Invalid number of arguments.")
+    metadata_url = None
     updatevm = sys.argv[1]
     fwupd = FwupdReceiveUpdates()
-    if updatevm is None:
-        exit(1)
-    if sys.argv[2] is None:
-        raise Exception("No flag mode has been set!!!")
-    elif sys.argv[2] == "metadata":
-        fwupd.handle_metadata_update(updatevm)
+    for arg in sys.argv:
+        if "--url=" in arg:
+            metadata_url = arg.replace("--url=", "")
+    if sys.argv[2] == "metadata":
+        fwupd.handle_metadata_update(updatevm, metadata_url=metadata_url)
     elif sys.argv[2] == "update":
         fwupd.handle_fw_update(updatevm, sys.argv[3], sys.argv[4])
+    else:
+        raise Exception("Invalid command!!!")
 
 
 if __name__ == '__main__':

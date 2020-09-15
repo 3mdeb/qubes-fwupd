@@ -22,6 +22,7 @@ FWUPD_USBVM_METADATA_FILE = os.path.join(
     "firmware.xml.gz"
 )
 FWUPDMGR = "/bin/fwupdmgr"
+FWUPD_DOWNLOAD_PREFIX = "https://fwupd.org/downloads/"
 
 GPG_LVFS_REGEX = re.compile(
     r"gpg: Good signature from [a-z0-9\[\]\@\<\>\.\"\"]{1,128}"
@@ -163,11 +164,22 @@ class FwupdUsbvmUpdates:
         if os.path.exists(FWUPD_USBVM_UPDATES_DIR):
             shutil.rmtree(FWUPD_USBVM_UPDATES_DIR)
 
-    def validate_metadata(self):
+    def validate_metadata(self, metadata_url=None):
         """Validates received the metadata files."""
         print("Running validation of the metadata files")
+        if metadata_url:
+            metadata_name = metadata_url.replace(
+                FWUPD_DOWNLOAD_PREFIX,
+                ""
+            )
+            metadata_file = os.path.join(
+                FWUPD_USBVM_METADATA_DIR,
+                metadata_name
+            )
+        else:
+            metadata_file = FWUPD_USBVM_METADATA_FILE
         try:
-            self._gpg_verification(FWUPD_USBVM_METADATA_FILE)
+            self._gpg_verification(metadata_file)
         except Exception as e:
             print(str(e), file=sys.stderr)
             self.clean()
@@ -196,21 +208,27 @@ class FwupdUsbvmUpdates:
 
 def main():
     f = FwupdUsbvmUpdates()
+    metadata_url = None
     if len(sys.argv) < 2:
         raise Exception("Invalid number of arguments.")
+    for arg in sys.argv:
+        if "--url=" in arg:
+            metadata_url = arg.replace("--url=", "")
     if sys.argv[1] == "metadata":
-        f.validate_metadata()
-    if sys.argv[1] == "dirs":
+        f.validate_metadata(metadata_url=metadata_url)
+    elif sys.argv[1] == "dirs":
         f.validate_dirs()
-    if sys.argv[1] == "clean":
+    elif sys.argv[1] == "clean":
         f.clean()
-    if sys.argv[1] == "updates":
-        if len(sys.argv) < 4:
-            raise Exception(
-                "Invalid number of arguments.\n"
-                "Expected archive path and checksum."
-            )
+    elif sys.argv[1] == "updates" and len(sys.argv) < 4:
+        raise Exception(
+            "Invalid number of arguments.\n"
+            "Expected archive path and checksum."
+        )
+    elif sys.argv[1] == "updates" and not len(sys.argv) < 4:
         f.validate_updates(sys.argv[2], sys.argv[3])
+    else:
+        raise Exception("Invaild command")
 
 
 if __name__ == '__main__':

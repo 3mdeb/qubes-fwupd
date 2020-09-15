@@ -12,6 +12,9 @@ URL: https://www.qubes-os.org/
 Requires:   cabextract
 Requires:   fwupd
 Requires:   gpg
+%if 0%{?fedora} <= 25
+Requires:   python36
+%endif
 
 Source0: %{name}-%{version}.tar.gz
 
@@ -23,8 +26,19 @@ fwupd wrapper for Qubes OS
 
 %install
 make install-dom0 DESTDIR=$RPM_BUILD_ROOT
+%if 0%{?fedora} <= 25
+exit 0
+%endif
 
 %post
+%if 0%{?fedora} <= 25
+sed -i 's/python3/python36/g' %FWUPD_QUBES_DIR/src/qubes_fwupdmgr.py
+sed -i 's/python3/python36/g' %FWUPD_QUBES_DIR/src/fwupd_receive_updates.py
+sed -i 's/python3/python36/g' %FWUPD_QUBES_DIR/src/qubes_fwupd_heads.py
+sed -i 's/python3/python36/g' %FWUPD_QUBES_DIR/test/test_qubes_fwupdmgr.py
+sed -i 's/python3/python36/g' %FWUPD_QUBES_DIR/test/test_qubes_fwupd_heads.py
+sed -i 's/python3/python36/g' %FWUPD_QUBES_DIR/test/fwupd_logs.py
+%endif
 ln -s -f %FWUPD_QUBES_DIR/src/qubes_fwupdmgr.py /bin/qubes-fwupdmgr
 gpg --import %PKI/GPG-KEY-Linux-Vendor-Firmware-Service
 if xl list sys-usb &>/dev/null; then
@@ -43,9 +57,11 @@ fi
 %FWUPD_QUBES_DIR/src/fwupd_receive_updates.py
 %FWUPD_QUBES_DIR/src/qubes_fwupdmgr.py
 %FWUPD_QUBES_DIR/src/fwupd-dom0-update
+%FWUPD_QUBES_DIR/src/qubes_fwupd_heads.py
 %FWUPD_QUBES_DIR/src/__init__.py
 %FWUPD_QUBES_DIR/test/fwupd_logs.py
 %FWUPD_QUBES_DIR/test/test_qubes_fwupdmgr.py
+%FWUPD_QUBES_DIR/test/test_qubes_fwupd_heads.py
 %FWUPD_QUBES_DIR/test/__init__.py
 %FWUPD_QUBES_DIR/test/logs/get_devices.log
 %FWUPD_QUBES_DIR/test/logs/get_updates.log

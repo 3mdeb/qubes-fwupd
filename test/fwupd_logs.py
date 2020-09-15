@@ -797,3 +797,52 @@ GET_DEVICES_NO_VERSION = """{
     ]
 }
 """
+
+HEADS_XML = """<?xml version='1.0' encoding='utf-8'?>
+<components origin="lvfs" version="0.9">
+  <component type="firmware">
+    <id>com.3mdeb.heads.x230.firmware</id>
+    <name>Heads x230 System Update</name>
+    <summary>x230 heads system firmware</summary>
+    <description>
+      <p>x230 heads system firmware</p>
+    </description>
+    <provides>
+      <firmware type="flashed">596c3466-0506-5ca5-a68f-dc34532a93d3</firmware>
+    </provides>
+    <url type="homepage">http://osresearch.net/</url>
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>GPLv2</project_license>
+    <developer_name>coreboot</developer_name>
+    <X-categories>
+      <category>X-System</category>
+    </X-categories>
+    <releases>
+      <release version="0.2.3" timestamp="1599436800" urgency="high">
+        <location>https://fwupd.org/downloads/e747a435bf24fd6081b77b6704b39cec5fa2dcf62e0ca6b86d8a6460121a1d07-heads_coreboot_x230-v0_2_3.cab</location>
+        <checksum type="sha1" filename="e747a435bf24fd6081b77b6704b39cec5fa2dcf62e0ca6b86d8a6460121a1d07-heads_coreboot_x230-v0_2_3.cab" target="container">1a54e69ca2b58d1218035115d481480eaf4c66e4</checksum>
+        <checksum type="sha256" filename="e747a435bf24fd6081b77b6704b39cec5fa2dcf62e0ca6b86d8a6460121a1d07-heads_coreboot_x230-v0_2_3.cab" target="container">ba519a7a5d8136c8ade0cf0c775c58f3165f42798ff631c3f57f075897ef1586</checksum>
+        <checksum type="sha1" filename="firmware.rom" target="content">76373f1b5a157b6563d3605271472901b03f57f3</checksum>
+        <checksum type="sha256" filename="firmware.rom" target="content">9a9c5dbd3faf90ff7a1f4c9be8d71c4db93dd69fa690f8722fec19c5a51aed9e</checksum>
+        <description>
+          <p>Fixes flash-gui issue.</p>
+        </description>
+        <size type="installed">12582912</size>
+        <size type="download">12591670</size>
+      </release>
+      <release version="0.2.2" timestamp="1599436800" urgency="high">
+        <location>https://fwupd.org/downloads/1a0f0ad487a40bb27a49db55e256a207a33dac92c5c53761501c9fb89e4fd115-heads_coreboot_x230-v0_2_2.cab</location>
+        <checksum type="sha1" filename="1a0f0ad487a40bb27a49db55e256a207a33dac92c5c53761501c9fb89e4fd115-heads_coreboot_x230-v0_2_2.cab" target="container">58e85d012ad1d5c6f98e8fe65202b4d6c8a6ec03</checksum>
+        <checksum type="sha256" filename="1a0f0ad487a40bb27a49db55e256a207a33dac92c5c53761501c9fb89e4fd115-heads_coreboot_x230-v0_2_2.cab" target="container">94430160d35cf74adf29c7fc1490b44497e1a3f0fff72733efe2982c61c9a772</checksum>
+        <checksum type="sha1" filename="firmware.rom" target="content">8e97ce38396e281fcf9a5a248819925a2fa04265</checksum>
+        <checksum type="sha256" filename="firmware.rom" target="content">a6774661407622f345bf0ac2f113540507f0288bb97bf5dba586059c0653f659</checksum>
+        <description>
+          <p>Lenovo x230 heads system firmware</p>
+        </description>
+        <size type="installed">12582912</size>
+        <size type="download">12591680</size>
+      </release>
+    </releases>
+  </component>
+</components>
+"""
