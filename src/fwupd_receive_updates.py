@@ -23,41 +23,39 @@ import glob
 import grp
 import hashlib
 import os
-import os.path as path
 import re
 import shutil
-import sys
 import subprocess
 
 FWUPD_DOM0_DIR = "/root/.cache/fwupd"
-FWUPD_DOM0_UPDATES_DIR = path.join(FWUPD_DOM0_DIR, "updates")
-FWUPD_DOM0_UNTRUSTED_DIR = path.join(FWUPD_DOM0_UPDATES_DIR, "untrusted")
-FWUPD_DOM0_METADATA_DIR = path.join(FWUPD_DOM0_DIR, "metadata")
-FWUPD_DOM0_METADATA_SIGNATURE = path.join(
+FWUPD_DOM0_UPDATES_DIR = os.path.join(FWUPD_DOM0_DIR, "updates")
+FWUPD_DOM0_UNTRUSTED_DIR = os.path.join(FWUPD_DOM0_UPDATES_DIR, "untrusted")
+FWUPD_DOM0_METADATA_DIR = os.path.join(FWUPD_DOM0_DIR, "metadata")
+FWUPD_DOM0_METADATA_SIGNATURE = os.path.join(
     FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz.asc"
 )
-FWUPD_DOM0_METADATA_FILE = path.join(
+FWUPD_DOM0_METADATA_FILE = os.path.join(
     FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz"
 )
-FWUPD_DOM0_METADATA_JCAT = path.join(
+FWUPD_DOM0_METADATA_JCAT = os.path.join(
     FWUPD_DOM0_METADATA_DIR,
     "firmware.xml.gz.jcat"
 )
 
 FWUPD_UPDATEVM_DIR = "/home/user/.cache/fwupd"
-FWUPD_UPDATEVM_UPDATES_DIR = path.join(FWUPD_UPDATEVM_DIR, "updates")
-FWUPD_UPDATEVM_METADATA_DIR = path.join(FWUPD_UPDATEVM_DIR, "metadata")
-FWUPD_UPDATEVM_METADATA_SIGNATURE = path.join(
+FWUPD_UPDATEVM_UPDATES_DIR = os.path.join(FWUPD_UPDATEVM_DIR, "updates")
+FWUPD_UPDATEVM_METADATA_DIR = os.path.join(FWUPD_UPDATEVM_DIR, "metadata")
+FWUPD_UPDATEVM_METADATA_SIGNATURE = os.path.join(
     FWUPD_UPDATEVM_METADATA_DIR,
     "firmware.xml.gz.asc"
 )
-FWUPD_UPDATEVM_METADATA_FILE = path.join(
+FWUPD_UPDATEVM_METADATA_FILE = os.path.join(
     FWUPD_UPDATEVM_METADATA_DIR,
     "firmware.xml.gz"
 )
-FWUPD_UPDATEVM_METADATA_JCAT = path.join(
+FWUPD_UPDATEVM_METADATA_JCAT = os.path.join(
     FWUPD_UPDATEVM_METADATA_DIR,
     "firmware.xml.gz.jcat"
 )
@@ -96,11 +94,9 @@ class FwupdReceiveUpdates:
         p = subprocess.check_output(cmd)
         source = p.decode('ascii').rstrip()
         if source != updatevm and "sys-whonix" != updatevm:
-            print(
-                f'Domain {updatevm} not allowed to send dom0 updates',
-                file=sys.stderr
+            raise Exception(
+                f'Domain {updatevm} not allowed to send dom0 updates'
             )
-            exit(1)
 
     def _verify_received(self, files_path, regex_pattern, updatevm):
         """Checks if sent files match  regex filename pattern.
@@ -118,7 +114,7 @@ class FwupdReceiveUpdates:
             assert '/' not in f
             assert '\0' not in f
             assert '\x1b' not in f
-            path_f = path.join(files_path, f)
+            path_f = os.path.join(files_path, f)
             if os.path.islink(path_f) or not os.path.isfile(path_f):
                 raise Exception(f'Domain {updatevm} sent not regular file')
 
@@ -133,7 +129,7 @@ class FwupdReceiveUpdates:
         if args is None:
             raise Exception("Creating directories failed, no paths given.")
         for file_path in args:
-            if not path.exists(file_path):
+            if not os.path.exists(file_path):
                 os.mkdir(file_path)
                 os.chown(file_path, -1, qubes_gid)
                 os.chmod(file_path, 0o0775)
@@ -230,21 +226,29 @@ class FwupdReceiveUpdates:
         )
         self._check_shasum(dom0_firmware_untrusted_path, sha)
         untrusted_dir_name = filename.replace(".cab", "")
-        output_path = path.join(FWUPD_DOM0_UNTRUSTED_DIR, untrusted_dir_name)
+        output_path = os.path.join(
+            FWUPD_DOM0_UNTRUSTED_DIR,
+            untrusted_dir_name
+            )
         self._extract_archive(dom0_firmware_untrusted_path, output_path)
-        signature_name = path.join(output_path, "firmware*.asc")
+        signature_name = os.path.join(output_path, "firmware*.asc")
         file_path = glob.glob(signature_name)
         self._gpg_verification(file_path[0].replace(".asc", ""))
         os.umask(self.old_umask)
         if untrusted_dir_name == "untrusted":
             untrusted_dir_name = "trusted"
-            verified_file = path.join(FWUPD_DOM0_UPDATES_DIR, filename)
-            trusted_file = path.join(FWUPD_DOM0_UPDATES_DIR, "trusted.cab")
-            shutil.move(verified_file, trusted_file)
-        dir_name = path.join(FWUPD_DOM0_UPDATES_DIR, untrusted_dir_name)
+            verified_file = os.path.join(FWUPD_DOM0_UPDATES_DIR, filename)
+            self.arch_name = "trusted.cab"
+            self.arch_path = os.path.join(
+                FWUPD_DOM0_UPDATES_DIR,
+                self.arch_name
+            )
+            shutil.move(verified_file, self.arch_path)
+        else:
+            self.arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, filename)
+        dir_name = os.path.join(FWUPD_DOM0_UPDATES_DIR, untrusted_dir_name)
         shutil.move(output_path, dir_name)
         shutil.rmtree(FWUPD_DOM0_UNTRUSTED_DIR)
-        exit(0)
 
     def handle_metadata_update(self, updatevm, metadata_url=None):
         """Copies metadata files from the updateVM.
@@ -322,25 +326,3 @@ class FwupdReceiveUpdates:
         )
         self._gpg_verification(self.metadata_file)
         os.umask(self.old_umask)
-        exit(0)
-
-
-def main():
-    if len(sys.argv) < 3:
-        raise Exception("Invalid number of arguments.")
-    metadata_url = None
-    updatevm = sys.argv[1]
-    fwupd = FwupdReceiveUpdates()
-    for arg in sys.argv:
-        if "--url=" in arg:
-            metadata_url = arg.replace("--url=", "")
-    if sys.argv[2] == "metadata":
-        fwupd.handle_metadata_update(updatevm, metadata_url=metadata_url)
-    elif sys.argv[2] == "update":
-        fwupd.handle_fw_update(updatevm, sys.argv[3], sys.argv[4])
-    else:
-        raise Exception("Invalid command!!!")
-
-
-if __name__ == '__main__':
-    main()

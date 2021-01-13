@@ -1,1 +1,1 @@
-fwupd-download-updates.sh usr/share/qubes-fwupd
+fwupd_download_updates.py usr/share/qubes-fwupd

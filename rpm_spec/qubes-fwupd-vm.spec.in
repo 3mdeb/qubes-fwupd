@@ -26,7 +26,7 @@ fwupd wrapper for Qubes OS
 make install-vm DESTDIR=$RPM_BUILD_ROOT
 
 %files
-%FWUPD_QUBES_DIR/fwupd-download-updates.sh
+%FWUPD_QUBES_DIR/fwupd_download_updates.py
 %FWUPD_QUBES_DIR/fwupd_usbvm_validate.py
 
 %changelog
