@@ -31,8 +31,12 @@ from distutils.version import LooseVersion as l_ver
 
 if __name__ == "__main__":
     from qubes_fwupd_heads import FwupdHeads
+    from qubes_fwupd_update import FwupdUpdate
+    from fwupd_receive_updates import FwupdReceiveUpdates
 else:
     from src.qubes_fwupd_heads import FwupdHeads
+    from src.qubes_fwupd_update import FwupdUpdate
+    from src.fwupd_receive_updates import FwupdReceiveUpdates
 
 FWUPD_QUBES_DIR = "/usr/share/qubes-fwupd"
 FWUPD_DOM0_UPDATE = os.path.join(FWUPD_QUBES_DIR, "src/fwupd-dom0-update")
@@ -129,28 +133,18 @@ EXIT_CODES = {
 }
 
 
-class QubesFwupdmgr(FwupdHeads):
+class QubesFwupdmgr(FwupdHeads, FwupdUpdate, FwupdReceiveUpdates):
     def _download_metadata(self, whonix=False, metadata_url=None):
         """Initialize downloading metadata files.
 
         Keywords arguments:
         whonix -- Flag enforces downloading the metadata updates via Tor
-        metadata_url -- Use custom metadata from the url
+        metadata_url -- Download metadata from the custom url
         """
-        cmd_metadata = [
-            FWUPD_DOM0_UPDATE,
-            "--metadata"
-        ]
-        if whonix:
-            cmd_metadata.append("--whonix")
-        if metadata_url:
-            cmd_metadata.append(f"--url={metadata_url}")
-        p = subprocess.Popen(cmd_metadata)
-        p.wait()
-        if p.returncode != 0:
-            raise Exception("fwudp-qubes: Metadata update failed")
+        self.download_metadata(whonix=whonix, metadata_url=metadata_url)
+        self.handle_metadata_update(self.updatevm, metadata_url=metadata_url)
         if not os.path.exists(self.metadata_file):
-            raise Exception("Metadata signature does not exist")
+            raise FileNotFoundError("Metadata file does not exist")
 
     def _validate_usbvm_dirs(self):
         """Validates if sys-ubs updates and metadata directories exist."""
@@ -544,25 +538,13 @@ class QubesFwupdmgr(FwupdHeads):
         sha -- SHA1 checksum of the firmware update archive
         whonix -- Flag enforces downloading the updates via Tor
         """
-        self.arch_name = url.replace(FWUPD_DOWNLOAD_PREFIX, "")
-        if SPECIAL_CHAR_REGEX.search(self.arch_name):
-            self.arch_name = "trusted.cab"
-        self.arch_path = os.path.join(FWUPD_DOM0_UPDATES_DIR, self.arch_name)
+        self.cached = False
+        self.download_firmware_updates(url, sha, whonix=whonix)
+        if not self.cached:
+            self.handle_fw_update(self.updatevm, sha, self.arch_name)
         update_path = self.arch_path.replace(".cab", "")
-        cmd_fwdownload = [
-            FWUPD_DOM0_UPDATE,
-            "--update",
-            f"--url={url}",
-            f"--sha={sha}"
-        ]
-        if whonix:
-            cmd_fwdownload.append("--whonix")
-        p = subprocess.Popen(cmd_fwdownload)
-        p.wait()
-        if p.returncode != 0:
-            raise Exception("fwudp-qubes: Firmware download failed")
         if not os.path.exists(update_path):
-            raise Exception("Firmware update files do not exist")
+            raise NotADirectoryError("Firmware update files do not exist")
 
     def _user_input(self, updates_dict, downgrade=False, usbvm=False):
         """UI for update process.

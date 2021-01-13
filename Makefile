@@ -13,7 +13,7 @@ install-dom0:
 	install -m 755 -D src/qubes_fwupdmgr.py $(DESTDIR)$(FWUPD_QUBES_DIR)/src/qubes_fwupdmgr.py
 	install -m 755 -D src/qubes_fwupd_heads.py $(DESTDIR)$(FWUPD_QUBES_DIR)/src/qubes_fwupd_heads.py
 	install -m 755 -D src/fwupd_receive_updates.py $(DESTDIR)$(FWUPD_QUBES_DIR)/src/fwupd_receive_updates.py
-	install -m 755 -D src/fwupd-dom0-update $(DESTDIR)$(FWUPD_QUBES_DIR)/src/fwupd-dom0-update
+	install -m 755 -D src/qubes_fwupd_update.py $(DESTDIR)$(FWUPD_QUBES_DIR)/src/qubes_fwupd_update.py
 	install -m 644 -D src/__init__.py $(DESTDIR)$(FWUPD_QUBES_DIR)/src/__init__.py
 	install -m 755 -D test/fwupd_logs.py $(DESTDIR)$(FWUPD_QUBES_DIR)/test/fwupd_logs.py
 	install -m 755 -D test/test_qubes_fwupdmgr.py $(DESTDIR)$(FWUPD_QUBES_DIR)/test/test_qubes_fwupdmgr.py
@@ -27,11 +27,11 @@ install-dom0:
 	install -m 644 -D test/logs/metainfo_version/firmware.metainfo.xml $(DESTDIR)$(FWUPD_QUBES_DIR)/test/logs/metainfo_version/firmware.metainfo.xml
 
 install-vm:
-	install -m 755 -D src/updatevm/fwupd-download-updates.sh $(DESTDIR)$(FWUPD_QUBES_DIR)/fwupd-download-updates.sh
-	install -m 755 -D src/usbvm/fwupd_usbvm_validate.py $(DESTDIR)$(FWUPD_QUBES_DIR)/fwupd_usbvm_validate.py
+	install -m 755 -D src/vms/fwupd_download_updates.py $(DESTDIR)$(FWUPD_QUBES_DIR)/fwupd_download_updates.py
+	install -m 755 -D src/vms/fwupd_usbvm_validate.py $(DESTDIR)$(FWUPD_QUBES_DIR)/fwupd_usbvm_validate.py
 
 install-whonix:
-	install -m 755 -D src/updatevm/fwupd-download-updates.sh $(DESTDIR)$(FWUPD_QUBES_DIR)/fwupd-download-updates.sh
+	install -m 755 -D src/vms/fwupd_download_updates.py $(DESTDIR)$(FWUPD_QUBES_DIR)/fwupd_download_updates.py
 
 clean:
 	rm -rf pkgs
