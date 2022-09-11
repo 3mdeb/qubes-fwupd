@@ -1,0 +1,12 @@
+whonix:
+  deb:
+    build:
+    - fwupd-@VERSION@/contrib/debian/
+    source:
+      commands:
+      - export QUBES_OPTION='-Dqubes=true'
+
+source:
+  files:
+  - url: https://github.com/fwupd/fwupd/archive/refs/tags/@VERSION@.tar.gz
+    uncompress: true
